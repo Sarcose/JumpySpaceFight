@@ -22,6 +22,6 @@ Classes = require 'load.classes'
 
 
 --[[       State        ]]
-state_engine = require 'state.engine'
+gamestate = require 'state.engine'
 --save_file = require 'state.save.savestruct'
 

@@ -10,15 +10,21 @@ push:setupScreen(GAME_W, GAME_H, w_width, w_height, {fullscreen = false, resizab
 
 
 function love.load()
-
+    love.graphics.setDefaultFilter("nearest", "nearest")
+    gamestate:load("open")
 end
 
 function love.update(dt)
-
+    --controller:update(dt)
+    flux.update(dt)
+    gamestate:update(dt)
+    --update other visual things
 end
 
 function love.draw()
-
+    push:start()
+    gamestate:draw()
+    push:finish()
 end
 
 function love.resize(w,h)
