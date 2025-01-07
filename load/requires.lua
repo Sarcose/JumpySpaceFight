@@ -1,11 +1,11 @@
 --[[       Core         ]]
 require 'core._g^crash'
 require ('lib.batteries'):export()
-_c_todo("Simple Quick UI","Controls","Classes","Camera","Map","Slick")
+_c_todo{"Simple Quick UI","Controls","Classes","Camera","Map","Slick"}
 
 --[[       Update       ]]
 baton = require 'lib.baton'
-_c_todo("Camera")
+
 --[[        Draw        ]]
 push = require 'lib.push'
 

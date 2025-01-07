@@ -445,6 +445,22 @@ function ccandy.stop(_,level,parseStart) --print red to console then stop the pr
 	if type(_) == "table" then _ = _[1] end
 	error("Stopped by ccandy.stop(): ".._.." (console may have more info)")
 end
+
+function ccandy.assert(eval,msg,stop) 
+	local level = 10
+	local parseStart = parseStart
+	if not eval then
+		local p = getCallLine("Assertion Fail",level, parseStart)
+		p = p .. msg
+		ccandy.printC(getANSI("error"),p)
+		if stop then
+			error(p)	--use lua's error here, because ccandy.assert already gives us the relevant info
+		end
+		return false
+	end
+	return true
+end
+
 function ccandy.error(_,level,parseStart) --print red to console, takes a string or table
     if type(_) ~= "table" then _ = {_} end
     local p = getCallLine("ERROR",level,parseStart)

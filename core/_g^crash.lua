@@ -13,6 +13,7 @@
 --[[-------------------------------------------------------------------------]]
 --[[      Table of Contents---#CONTENTS--------------------------------------]]
 --[[      #DEBUG-------------------------------------------------------------]]
+--[[      #SAFE--------------------------------------------------------------]]
 --[[      #ACTOR-------------------------------------------------------------]]
 --[[      #COMPARISON--------------------------------------------------------]]
 --[[      #STATE-------------------------------------------------------------]]
@@ -21,7 +22,7 @@
 --[[      #VARIABLE----------------------------------------------------------]]
 --[[      #GRAPHICS----------------------------------------------------------]]
 --[[      #FILE--------------------------------------------------------------]]
---[[      #DEPRECATED - (stub functions)-------------------------------------]]
+--[[      #OVERLOADS---------------------------------------------------------]]
 --[[-------------------------------------------------------------------------]]
 require ('core.debugcandy'):export()
 --require 'core.debugcandytest'     --uncomment this when uploading new debugcandy examples
@@ -239,6 +240,30 @@ function g.debug.loadingBar(value, start, goal, text)	--TODO: for now only use s
 		end
 	end
 end
+
+g.safe = {}
+--[[Safety Functions #SAFE]]
+function g.safe.call(f, ...)	
+	if type(f)=="function" then
+		return f(...)
+	end
+end
+function g.safe.get(table, key, default)
+	return table and table[key] or default
+end
+function g.safe.release(object)
+    if object and object.release then
+        object:release()
+    end
+end
+function g.safe.profile(func, ...)	--consider putting this into a more robust display
+    local start = love.timer.getTime()
+    local result = {func(...)}
+    local duration = love.timer.getTime() - start
+    _c_message(("Execution time: %.3f ms"):format(duration * 1000))
+    return gcore.var.unpack(result)
+end
+
 g.actor = {}
 --[[Actor Functions #ACTOR]]
 
@@ -747,6 +772,16 @@ function g.var.shallowcopy(orig)
     return copy
 end
 
+function g.var.unpack(t,start,total)
+	--_c_assert(type(t)=="table","unpack called on non-table! Type is: "..tostring(type(t)))
+	start = start or 1
+	total = total or #t
+	if start > total then
+		return
+	end
+	return t[start], gcore.var.unpack(t, start + 1, total)
+end
+
 g.graphics = {}
 --[[Graphics #GRAPHICS]]
 function g.graphics.loadImageDataFromPath( filePath )
@@ -850,6 +885,9 @@ function g.file.evaluate(cmd,v) -- this uses recursion to solve math equations
     return v
 end
 
+--[[Overloads #OVERLOAD]]
+
+
 --[[Replace print() with debugcandy, throw soft warnings w/trace if print() is used directly]]
 function _G.print(...)
     local printResult = "print() called: "
@@ -863,3 +901,5 @@ end
 
 --[[ Reference g into global gcore ]]
 _G.gcore = g
+--Export the safety library into the global namespace.
+_G._safe = g.safe

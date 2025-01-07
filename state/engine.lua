@@ -1,8 +1,7 @@
 local engine = {}
 engine.stateCategory = "prototypes"
+local defaultState = "draw"     --current testing state. OR: the "Open" state when the game is playable.
 engine.prototypes = {
-    open = require "state.prototypes.open",
-    runtest = require "state.prototypes.runtest",
     draw = require "state.prototypes.draw",
     ui = require "state.prototypes.ui",
     control = require "state.prototypes.control",
@@ -13,14 +12,15 @@ engine.prototypes = {
     composite_entities = require "state.prototypes.composite_entities",
     stress_test_1 = require "state.prototypes.stress_test_1",
     design_playground = require "state.prototypes.design_playground",
+    _tableName = "engine.prototypes"
 }
 engine.states = {
 
 }
 
 
-
 function engine:load(state, save)
+    if not state then state = defaultState end
     self:changeState(state)     --TODO: Save file
 end
 
@@ -32,9 +32,9 @@ function engine:update(dt)
 end
 
 function engine:changeState(change)
-    self.state:unload()     --TODO: state:unload()
+    if self.state then self.state:unload() end
     self.currentState = change
-    self.state = self[self.stateCategory][self.state]
+    self.state = self[self.stateCategory][self.currentState]
     self.state:load()
 end
 
