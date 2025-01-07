@@ -8,6 +8,8 @@ At this time, no gameplay or screenshots, or even a playable build, of the origi
 
 The goal of this project is to completely recode it from scratch and from memory (the game was simple, that shouldn't be a problem), using erinmaus' new collision library, [Slick](https://github.com/erinmaus/slick)
 
+My other major game project, Outer Pixels, is not public, so it will be interesting to expose my horrible coding practices to the world (other than some of my smaller libraries)
+
 ## ToDo List:
   * [ ] Implement basic gameloop, state engine, baton controller
   * [ ] Game States -> Placeholder Menu | Game | Silo test states
@@ -19,7 +21,15 @@ The goal of this project is to completely recode it from scratch and from memory
   * [ ] Attach polygons to entities, use love.draw.line to render shapes accurately
   * [ ] Start *designing gameplay*
 
-## Plans
+## Planned Libraries:
+  * slick
+  * classic for instantiation
+  * baton for controls
+  * batteries
+  * sysl-text and sframe because it's always fun
+  * possibly more, but I'm going to keep this one simple and probably handroll most of what is needed
+
+## Design Plans
   * Unified neon lineart visual style
   * Arcade style gameplay
   * Multiple weapons, items, pickups
