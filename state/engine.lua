@@ -1,6 +1,6 @@
 local engine = {}
 engine.stateCategory = "prototypes"
-local defaultState = "draw"     --current testing state. OR: the "Open" state when the game is playable.
+local defaultState = "design_playground"     --current testing state. OR: the "Open" state when the game is playable.
 engine.prototypes = {
     draw = require "state.prototypes.draw",
     ui = require "state.prototypes.ui",

@@ -2,7 +2,11 @@
 defaults = {
     Type = "State",
     Name = "NoName",
-    Objects = {}
+    Objects = {
+        categories = {}, 
+        total = 0,
+        defaultCategory = "Main"
+    }
 }
 
 local State = Object:extend(defaults)
@@ -11,36 +15,115 @@ local function testFunc(first, second, third, fourth)
     return first, second, third, fourth
 end
 
+
 function State:load()
 
 end
 
+-- Object._address = State:add(Object, category) -- I don't think I'll use i but you never know
+function State:add(Object, cat, i)
+    i = i or -1
+    cat = cat or self.Objects.defaultCategory
+    if not self.Objects[cat] then 
+        self.Objects[cat] = {total = 0} 
+        table.insert(self.Objects.categories,cat)
+    end
+    if i == -1 then i = #self.Objects[cat]+1 end
+    table.insert(self.Objects[cat],i, Object)
+    self.Objects.total = self.Objects.total + 1
+    self.Objects[cat].total = self.Objects[cat].total + 1
+    return {
+        success = true,
+        category = cat,
+        index = i,
+        object = Object,
+    }
+end
+
+--isRemoved = State:remove(Object)
+function State:remove(Object)
+    local index, cat = Object._address.index, Object._address.category
+    local removed
+    self.Objects[cat][index] = "%Removed"
+    removed = true
+    self.Objects.total = self.Objects.total - 1
+    self.Objects[cat].total = self.Objects[cat].total - 1
+    return removed
+end
+
+function State:reindex()
+    local o,re
+    local cat, cat_table, ReCat
+    self.Objects.total = 0
+    for i=1, #self.Objects.categories do
+        cat = self.Objects.categories[i]
+        cat_table = self.Objects[cat]
+        ReCat = {}
+        for index=1, #cat_table do
+            o = cat_table[index]
+            if o and o ~= "%Removed" then 
+                table.insert(ReCat,o) 
+                re = {
+                    success = true,
+                    category = cat,
+                    index = #ReCat,
+                    object = o
+                }
+                _safe.call(o.reindex,o,re)  --objects will have a "reindex" method that resupplies them with their index info
+                self.Objects.total = self.Objects.total + 1
+                cat_table.total = cat_table.total + 1
+            end
+        end
+        self.Objects[cat] = ReCat
+    end
+end
 
 function State:update(dt)
-    local o
-    for i=1,#self.Objects do
-        o = self.Objects[i]
-        _safe.call(o.update, self, o, dt)
+    if self.Objects.total > 0 then
+        local o, object_cat
+        for i=1,#self.Objects.categories do
+            object_cat = self.Objects[self.Objects.categories[i]]
+            if object_cat.total > 0 then
+                for i=1, #object_cat do
+                    o = object_cat[i]
+                    _safe.call(o.update, o, dt)
+                end
+            end
+        end
     end
 end
 
 function State:draw()
-    local o
-    for i=1,#self.Objects do
-        o = self.Objects[i]
-        _safe.call(o.draw, self, o)
+    if self.Objects.total > 0 then
+        local o, object_cat
+        local called
+        for i=1,#self.Objects.categories do
+            object_cat = self.Objects[self.Objects.categories[i]]
+            if object_cat.total > 0 then
+                for i=1, #object_cat do
+                    o = object_cat[i]
+                    called = _safe.call(o.draw, o, dt)
+                end
+            end
+        end
     end
 end
 
 function State:unload()
-    for k,v in pairs(self) do
-        if v.release and type(v.release) == "function" then
-            if _DEBUGLEVEL >= 3 then
-                local st = "State "..tostring(self.name).." releasing "..tostring(k).." | "..tostring(v)
-                _c_message(st)
+    if self.Objects.total > 0 then
+        local o, object_cat
+        for i=1,#self.Object.categories do
+            object_cat = self.Objects[self.Objects.categories[i]]
+            if object_cat.total > 0 then
+                for i=1, #object_cat do
+                    o = object_cat[i]
+                    _safe.release(o)
+                end
             end
-            v:release()
         end
+    end
+    for k,v in pairs(self) do
+        _safe.release(v)
     end
 end
 

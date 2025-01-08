@@ -3,7 +3,7 @@
 local ccandy = {
 	colorsOff = false,
 	debugOn = true,
-	baseLevel = 2,
+	baseLevel = 3,
 	pathDepth = 1,
 	toDoExpiration = 5,
 	reminderheader = "==========!!!=======REMINDER=======!!!========",

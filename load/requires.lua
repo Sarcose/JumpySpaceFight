@@ -10,7 +10,7 @@ baton = require 'lib.baton'
 push = require 'lib.push'
 
 --[[         UI         ]]
-
+controls = require 'ui.controls'
 
 --[[     Physics       ]]
 slick = require 'lib.slick'
