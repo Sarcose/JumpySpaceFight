@@ -9,7 +9,7 @@ function c:load()   --in the future, we will load from a settings storage
             up = {'key:up', 'axis:lefty-', 'button:dpup'},
             down = {'key:down', 'axis:lefty+', 'button:dpdown'},
             rightface = {'key:d','key:lctrl','button:b','mouse:1'},     --action
-            bottomface = {'key:s','key:escape','button:a','mouse:2'},   --jump
+            bottomface = {'key:s','space','key:escape','button:a','mouse:2'},   --jump
             leftface = {'key:a','key:-','button:x','mouse:4'},          --subslot1
             topface = {'key:w','key:=','button:y','mouse:5'},           --subslot2
             pause = {'key:return', 'button:start'},
@@ -36,10 +36,8 @@ function c:load()   --in the future, we will load from a settings storage
             mb_left = {'mouse:1'},
             mb_middle = {'mouse:3'},
             mb_right = {'mouse:2'},
-            mb_wheeldown = {'mouse:wd'},
-            mb_wheelup = {'mouse:wu'},
-            mb_x1 = {'mouse:x1'},
-            mb_x2 = {'mouse:x2'},
+            mb_backward = {'mouse:4'},
+            mb_forward = {'mouse:5'}
         },
         pairs = {	
             move = {'left', 'right', 'up', 'down'}
@@ -47,6 +45,7 @@ function c:load()   --in the future, we will load from a settings storage
         joystick = love.joystick.getJoysticks()[1],
         deadzone = .33,
     }
+    controller.wheel = {x=0,y=0}
     return controller
 end
 

@@ -1,33 +1,63 @@
 --[[
 Idea: an image editor that lets you prototype polygons by drawing lines from connectors,
 and moving connectors or deleting lines/connectors.
-
 ]]
-local s = Classes.State:new()
-
 local font = love.graphics.newFont(32)
 lg.setFont(font)
-local MouseCheck = {
-    currentButton = "Nothing pressed"
-}
-function MouseCheck:update(dt)
-    if controller:pressed('mb_left')            then self.currentButton = "Left Mouse Button Clicked!"
-    elseif controller:pressed('mb_right')       then self.currentButton = "Right Mouse Button Clicked!"
-    elseif controller:pressed('mb_middle')      then self.currentButton = "Middle Mouse Button Clicked!"
-    elseif controller:pressed('mb_wheeldown')   then self.currentButton = "Mousewheel Down!"    --love.mouse.wheelmoved
-    elseif controller:pressed('mb_wheelup')     then self.currentButton = "Mousewheel Up!"      --love.mouse.wheelmoved
-    elseif controller:pressed('mb_x1')          then self.currentButton = "Mouse X1 Pressed!"   ---dunno what these are yet
-    elseif controller:pressed('mb_x2')          then self.currentButton = "Mouse X2 Pressed"
+
+local Designer = Classes.Framework.State:new(nil,"Designer")
+
+
+
+
+
+function Designer:load()
+   self._input = Classes.Interface.Controller:new()
+   self.inputQueues = self._input.queues
+
+   _c_debugL(self._input,"Controller")
+end
+
+function Designer:processInputs(dt)
+    self._input:clear()
+    self._input:update(dt)
+end
+
+function Designer:update(dt)
+
+end
+
+local function noop()
+    self:processInputs(dt)
+    --if self.input.queues.pressed.mb_wheelup etc.
+    if self.Objects.total > 0 then
+        local o, object_cat
+        for i=1,#self.Objects.categories do
+            object_cat = self.Objects[self.Objects.categories[i]]
+            if object_cat.total > 0 then
+                for i=1, #object_cat do
+                    o = object_cat[i]
+                    _safe.call(o.update, o, dt)
+                end
+            end
+        end
     end
+
 end
 
-function MouseCheck:draw()
-    love.graphics.print(self.currentButton,100,100)
+function Designer:draw()
+    gcore.debug.guitableprint(self.inputQueues)
+
+
 end
 
-MouseCheck._address = s:add(MouseCheck)
+--MouseCheck._address = Designer:add(MouseCheck)
 
 
 
 
-return s
+
+
+
+
+return Designer

@@ -23,7 +23,7 @@ fallthrough platforms of various shapes and sizes!
 
 
 
-local s = Classes.State:new{Name = "Draw"}
+local s = Classes.Framework.State:new({Name = "Draw"},"draw")
 
 
 

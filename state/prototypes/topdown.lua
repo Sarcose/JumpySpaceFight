@@ -1,2 +1,2 @@
-local s = Classes.State:new()
+local s = Classes.Framework.State:new(nil,"topdown")
 return s

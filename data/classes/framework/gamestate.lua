@@ -1,6 +1,6 @@
 
-defaults = {
-    Type = "State",
+local defaults = {
+    type = "State",
     Name = "NoName",
     Objects = {
         categories = {}, 
@@ -16,19 +16,20 @@ local function testFunc(first, second, third, fourth)
 end
 
 
-function State:load()
-
+function State:new(a,name)
+    --print("instantiating new state from "..tostring(name))
+    local inst = self:extend(a)
+    --_c_debug(inst)
+    return inst
 end
-
 -- Object._address = State:add(Object, category) -- I don't think I'll use i but you never know
 function State:add(Object, cat, i)
-    i = i or -1
     cat = cat or self.Objects.defaultCategory
     if not self.Objects[cat] then 
         self.Objects[cat] = {total = 0} 
         table.insert(self.Objects.categories,cat)
     end
-    if i == -1 then i = #self.Objects[cat]+1 end
+    if i == nil then i = #self.Objects[cat] + 1 end
     table.insert(self.Objects[cat],i, Object)
     self.Objects.total = self.Objects.total + 1
     self.Objects[cat].total = self.Objects[cat].total + 1
@@ -79,6 +80,7 @@ function State:reindex()
 end
 
 function State:update(dt)
+    _safe.call(self.input.update,self,dt)
     if self.Objects.total > 0 then
         local o, object_cat
         for i=1,#self.Objects.categories do
@@ -91,6 +93,7 @@ function State:update(dt)
             end
         end
     end
+    _safe.call(self.input.reset,self)
 end
 
 function State:draw()
@@ -112,7 +115,7 @@ end
 function State:unload()
     if self.Objects.total > 0 then
         local o, object_cat
-        for i=1,#self.Object.categories do
+        for i=1,#self.Objects.categories do
             object_cat = self.Objects[self.Objects.categories[i]]
             if object_cat.total > 0 then
                 for i=1, #object_cat do

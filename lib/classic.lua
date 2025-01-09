@@ -13,8 +13,15 @@ Object.__index = Object
 
 
 function Object:new(a)
-  local inst = self:extend()
-  if type(a)=='table' then tablex.overlay(inst, a) end
+  local inst = self:extend(a)
+  --if type(a)=='table' then tablex.overlay(inst, a) end
+  inst.type = inst.type or "Object"
+  if string.upper(tostring(inst.name)) == "NONAME" then 
+    inst.name = inst.type
+    inst._tableName = inst._tableName or "primitive "..inst.name
+  else
+    inst._tableName = inst._tableName or inst.name
+  end
   return inst
 end
 
@@ -69,10 +76,10 @@ function Object:is(T)
 end
 
 
-function Object:__tostring()
-  return "Object  "..string.format("%p", self)
-end
 
+function Object:__tostring()
+  return self.type.."  "..string.format("%p", self)
+end
 
 function Object:__call(...)
   local obj = setmetatable({}, self)

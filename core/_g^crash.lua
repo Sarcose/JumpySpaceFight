@@ -8,7 +8,10 @@
 --[[=========================================================================]]
 --[[=========================================================================]]
 -- core utilities lib for Game Crash
--- last update: 01/03/2025
+-- last update: 01/07/2025
+-- requires debugcandy.lua
+-- all versions used in Game Crash games export 
+--		debugcandy into the _c_ global pseudonamespace
 
 --[[-------------------------------------------------------------------------]]
 --[[      Table of Contents---#CONTENTS--------------------------------------]]
@@ -22,6 +25,7 @@
 --[[      #VARIABLE----------------------------------------------------------]]
 --[[      #GRAPHICS----------------------------------------------------------]]
 --[[      #FILE--------------------------------------------------------------]]
+--[[      #EXPANSIONS--------------------------------------------------------]]
 --[[      #OVERLOADS---------------------------------------------------------]]
 --[[-------------------------------------------------------------------------]]
 require ('core.debugcandy'):export()
@@ -40,21 +44,21 @@ function g.debug.guitableprint(t, name, x, y, font, color, tab, offset,depth)
 	name = name or "table"
 	x = x or 100
 	y = y or 100
-	font = font or 'Menu'
+	font = font or TestFont
 	color = color or {1,1,1,1}
 	tab = tab or ""
 	offset = offset or 0
 	depth = depth or 3
 	if setparams then
 		lg.setColor(color)
-		lg.setFont(_G.Font[font])
+		lg.setFont(font)
 	end
 	lg.print(tostring(tab)..tostring(name).." = {",x,y+offset)
 	if depth > 0 then
 		for i,v in pairs(t) do
-			offset = offset + _G.Font[font]:getHeight("W")
+			offset = offset + font:getHeight("W")
 			if type(v) == "table" then
-				guitableprint(t[i], i, x, y, font, color, tostring(tab).."  ",offset,depth-1)
+				g.debug.guitableprint(t[i], i, x, y, font, color, tostring(tab).."  ",offset,depth-1)
 			else
 				lg.print(tostring(tab).."    "..tostring(i).."= "..tostring(v),x+100,y+offset)
 			end
@@ -241,6 +245,7 @@ function g.debug.loadingBar(value, start, goal, text)	--TODO: for now only use s
 	end
 end
 
+_c_todo{"gcore safe todolist: ","get: use parseRef to grab an multiple indices"}
 g.safe = {}
 --[[Safety Functions #SAFE]]
 function g.safe.call(f, ...)	
@@ -249,7 +254,7 @@ function g.safe.call(f, ...)
 	end
 end
 function g.safe.get(table, key, default)
-	return table and table[key] or default
+	return type(table)=="table" and table[key] or default
 end
 function g.safe.release(object)
     if object and object.release then
@@ -683,6 +688,28 @@ end
 function g.var.randomPick(t)	--random{1,2,3,4,5}
 	return t[math.random(1,#t)]
 end
+--parses a reference table to an object. A reference table is something like {"objects","subobjects","rectangles"} 
+--which will return object[objects][subobjects][rectangles]
+function g.var.parseRef(object, address)	
+	_c_assert(type(object)=="table")
+	local ref = object
+	local addy
+	local success = true
+	for i=1, #address do	--{TestSub, TestTestSub}
+		addy = address[i]
+		if type(ref)=="table" then
+			ref = ref[addy]
+		else
+			success = addy.." (failed at depth: "..tostring(i)..", total depth passed was: "..tostring(#address)..")"
+			break
+		end
+	end
+	if type(success)=="string" then 
+		_c_warn("parseRef passed with object "..tostring(object).." depth less than address depth! "..success,5)
+		success = false
+	end
+	return ref, success
+end
 function g.var.weightedRandom (pool)
     local poolsize = 0
     for k,v in ipairs(pool) do
@@ -737,7 +764,6 @@ function g.var.getClosestMod(n, m)	--todo: do this lol
 	assertType(m,"number","getClosestMod","m")
 end
 
-
 function g.var.tablePurge(table,countTo)
 	if #table > countTo then
 		local t = {}
@@ -773,7 +799,7 @@ function g.var.shallowcopy(orig)
 end
 
 function g.var.unpack(t,start,total)
-	--_c_assert(type(t)=="table","unpack called on non-table! Type is: "..tostring(type(t)))
+	_c_assert(type(t)=="table","unpack called on non-table! Type is: "..tostring(type(t)))
 	start = start or 1
 	total = total or #t
 	if start > total then
@@ -885,19 +911,47 @@ function g.file.evaluate(cmd,v) -- this uses recursion to solve math equations
     return v
 end
 
+--[[Expansions #EXPANSIONS]]
+--For now, just one. In addition to requiring debugcandy I want to make this core lib work with external libs
+--However, it shouldn't directly depend on any external libs that aren't GC-made, so instead it can be expanded
+--With a table that wraps them.
+g.ex = {_self = g, core = g}
+
+function g.ex:add(filepath, prefix)
+	self = self._self	--upreference self
+	filepath = filepath or 'core._g^crash_batteries'
+	prefix = prefix or 'ex'	--overlapping expansions will not respect previously written functions however.
+	if not self[prefix] then 
+		self[prefix] = {} 
+	end
+	local expansion = require(filepath)
+	for k,v in pairs(expansion) do
+		self[prefix][k] = v
+	end
+end
+g.ex:add() --now, call the function. _g^crash_batteries is online.
+
 --[[Overloads #OVERLOAD]]
 
 
 --[[Replace print() with debugcandy, throw soft warnings w/trace if print() is used directly]]
+
+--[[
 function _G.print(...)
-    local printResult = "print() called: "
+    local printResult = "print():"
     local args = {...}
     for i,v in ipairs(args) do
-        printResult = printResult ..tostring(v).."\t "
+        printResult = printResult ..tostring(v)..","
     end
-    printResult = printResult .."\n"
-    _c_debug(printResult)
+   -- printResult = printResult .."\n"
+    _c_message(printResult,0)
 end
+--]]
+
+
+
+
+
 
 --[[ Reference g into global gcore ]]
 _G.gcore = g
