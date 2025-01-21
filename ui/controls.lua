@@ -27,7 +27,6 @@ function c:load()   --in the future, we will load from a settings storage
             u = {'key:u'},
             i = {'key:i'},
             j = {'key:j'},
-            i = {'key:i'},
             k = {'key:k'},
             l = {'key:l'},
             y = {'key:y'},
@@ -37,7 +36,7 @@ function c:load()   --in the future, we will load from a settings storage
             mb_middle = {'mouse:3'},
             mb_right = {'mouse:2'},
             mb_backward = {'mouse:4'},
-            mb_forward = {'mouse:5'}
+            mb_forward = {'mouse:5'},
         },
         pairs = {	
             move = {'left', 'right', 'up', 'down'}

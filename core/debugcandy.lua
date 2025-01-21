@@ -11,6 +11,9 @@ Refactor TODO:
 			--[ ] tweaks
 			--[ ] displayProperties
 			--[ ] Remove deprecated
+	--[ ] Put things like boolswitch and LoremIpsum into an optional helper subcategory
+	--[X] Continue tweaking debugL
+	--[X] Distinction of public and private methods, organization of document.
 	--[ ] Better arg implementation of debug, allowing for a name that doesn't touch the table
 		--[ ] Merge debug, debugN, debugL into one
 	--[ ] Make a design decision re: export vs library, regarding update and draw
@@ -18,11 +21,14 @@ Refactor TODO:
 	--[ ] Better separation of debug vs. safety features. Maybe safety methods should be removed because of scope.
 	--[ ] Rewrite or change generic methods for usability: printC/printCBG/blank/message
 	
-	Visual:
+	Visual: full ANSI cheatsheet: https://gist.github.com/ConnerWill/d4b6c776b509add763e17f9f113fd25b
+	--[ ] Get debugL lined up like debug is, in order to combine them.
+	--[ ] Style options. Dim/Italic/Bold/Underline/Blinking/Strikethrough
 	--[ ] Color is still not fully standardized in implementation; review all methods' practices.
 	--[ ] Full implement of GUI
 	--[ ] Change "reminderHeader/reminderFooter" into a generic wrapper that can put a header/footer over anything.
 	--[ ] Could potentially set up tabs with an int and implement ccandy.load()
+	--[ ] TBH, printC may be unnecessary. getANSI handles a lot of the logic of adding color escapes.
 	
 	Upload:
 	--[ ] Properly work from a repo instead of right inside one of my projects >_<
@@ -53,13 +59,13 @@ Keys:
 
 ]]
 
-local ccandy = {
+local ccandy = {	--All properties in this initial table are open to be tweaked by the user
 	controls = {			--Major functionality properties. Use the format Capital_Letter_Underscores to signiy their importance.
 		Debug_Level = 3,
 		Colors = true,		
 		GUI = false,		--Toggle on GUI output for all methods. Multi-colored output not yet implemented (debugL)
 		Start = 4,			--How many levels of stack trace to ignore (to avoid outputting the debug lib for instance)
-		Trace_Level = 4,		--Level of stack trace all methods report by default. Level starts after |Start| is applied
+		Trace_Level = 5,		--Level of stack trace all methods report by default. Level starts after |Start| is applied
 		Override = false,	--Panic button. If true, all debug methods report |TraceLevel| stack trace, ignoring arguments.
 		Keys = false,		--Set to true and use ccandy:update(dt) (or _c_debugUpdate(dt)) to have Debug Candy enable arrow keys for moving the GUI output
 		Table_Depth_Limit = 9,	--hard limit on table depth parsing
@@ -79,14 +85,13 @@ local ccandy = {
 		toDoExpiration = 5,		--how long before a todo throws a warning that it's been ignored, only works if you pass a date.
 		reminderheader = "==========!!!=======REMINDER=======!!!========",
 		reminderfooter = "=========!!!=======================!!!========",
-		toDoTab = "   ",
-		debugLTab = "      ",		--how big the tab is between levels when using debugL()
+		tabSize = 3,
 		backgrounds = false,
 	},
 	dev = {					--If you REALLY want to...
 		debugTheDebugger = false,
 	},
-	displayProperties = {	--TODO: add controls for offsetting.
+	displayProperties = {	-- TODO: add controls for offsetting.
 		font = love.graphics.newFont(28),
 		background = false,
 		color = true,
@@ -97,21 +102,11 @@ local ccandy = {
 		linespace = 0.5,
 	},
 --[[	Deprecated Properties	]]
-	remindOn = true,
-	debugOn = true,
-	todosOn = true,
-	colorsOn = true,
-	baseLevel = 10,			--level of stack parsing
-	pathDepth = 1,			--how many levels to skip before parsing, to avoid redundantly labeling the library in every output
-	toDoExpiration = 5,		--how long before a todo throws a warning that it's been ignored, only works if you pass a date.
+	pathDepth = 1,			--now I don't remember what this is used for.
 	reminderheader = "==========!!!=======REMINDER=======!!!========",
 	reminderfooter = "=========!!!=======================!!!========",
 	toDoTab = "   ",
-	debugLTab = "      ",		--how big the tab is between levels when using debugL()
-	backgrounds = false,
-	tableDepthLimit = 9,
 --[[	End of Deprecation	]]
-	_drawTable = {},
 	colors = {
 		warn = "yellow",
 		error = "red",
@@ -131,7 +126,7 @@ local ccandy = {
 		success = "black"
 	},
 }
--- ANSI sequences
+--[[ ANSI sequences ]]
 local resetANSI = "\x1B[m"
 local consolecolors = {
 	black = "\x1b[30m",			white = "\x1b[37m",
@@ -143,8 +138,24 @@ local bgcolors = {
 	red = "\x1b[41m",				yellow = "\x1b[43m",	   		
 	green = "\x1b[42m",				blue = "\x1b[44m",
 	magenta = "\x1b[45m",			cyan = 	"\x1b[46m"	}
+local index_colors = {	--cyclical coloration of debugL
+		"\27[96m", -- Bright Cyan
+		"\27[94m", -- Bright Blue
+		"\27[92m", -- Bright Green
+		"\27[93m", -- Bright Yellow
+		"\27[31m", -- Red
+		"\27[36m", -- Cyan
+		"\27[35m", -- Magenta
+		"\27[34m", -- Blue
+		"\27[32m", -- Green
+		"\27[33m", -- Yellow
+		"\27[90m", -- Gray (Muted)
+		"\27[30m\27[47m", -- White on Black
+	}
+--[[ Local Variables ]]
+local defaultExclude = {prefixes = {"_","__","_c_",}, keys = {}}
 
--- Helper functions
+--[[ Local Helpers	]]
 
 local function extractCallerInfo(level, parseStart)
     local stack = debug.traceback("", 2)
@@ -220,7 +231,7 @@ local function getDeepest(t, refs, depth)
     refs = refs or {}
     refs[t] = true -- Use the table itself as the key
     local deepest = depth
-    local limit = ccandy.tableDepthLimit
+    local limit = ccandy.controls.Table_Depth_Limit
 
     if depth >= limit then return limit end
 
@@ -247,12 +258,42 @@ local function getSpacing(space, name, div)
 	end
 	return spaces
 end
-local function inspect(i, refs)
+local fileTypes = {".lua",".md",".love"}
+local function formatFilePath(s)
+	local str = s
+	for i,v in ipairs(fileTypes) do
+		str = string.gsub(str,v,"")
+	end
+	str = string.gsub(str,"/",".")
+	return str
+end
+local function inspectFunc(func)	--#INSPECTFUNC
+    local info = debug.getinfo(func)
+    if not info then return "< addr:(invalid) > Invalid function" end
+
+    -- Extract memory address from tostring
+    local addr = tostring(func):match("function: (0x%x+)") or "(unknown)"
+
+    -- Extract other details
+    local name = info.name or ""
+	if name and string.len(name) > 0 then name = "("..name..")" end
+    local src = info.short_src or "unknown source"
+	src = formatFilePath(src)
+    local line = info.linedefined >= 0 and tostring(info.linedefined) or "(C function)"
+    local nparams = info.nparams or 0
+    local isvararg = info.isvararg and "vararg" or "fixed"
+
+    -- Format as a one-line string
+    return string.format(" addr:%s%s [%s:%s] Args: %d (%s)", 
+        addr, name, src, line, nparams, isvararg)
+end
+
+local function inspect(i, refs)				--#INSPECT
     refs = refs or {}
     local t = type(i)
     local ret = ""
     local symbol = "= "
-    local limit = ccandy.tableDepthLimit
+    local limit = ccandy.controls.Table_Depth_Limit
 
     if t == "table" then
         symbol = ""
@@ -288,9 +329,8 @@ local function inspect(i, refs)
         end
         ret = ret .. " ]"
     elseif t == "function" then
-        local addr = string.gsub(tostring(i), "function: ", "")
-        ret = "addr:" .. addr
-        symbol = "  "
+		ret = ret.. inspectFunc(i)
+        symbol = ""
     elseif t == "string" then
         ret = '"' .. i .. '"'
     else
@@ -334,7 +374,8 @@ local function compareDate(inputString)
     local daysPassed = math.floor(secondsPassed / (24 * 60 * 60)) -- Convert seconds to days
     return true, daysPassed
 end
-local function getANSI(name,bgcolor)	--getANSI todo is passed
+local function getANSI(name,bgcolor)		--#GETANSI
+	if not ccandy.controls.Colors then return "" end
 	local e = consolecolors[ccandy.colors[name]]
 	local bg 
 	if not e then 
@@ -351,7 +392,7 @@ local function getANSI(name,bgcolor)	--getANSI todo is passed
 	end
 	
 	
-	if ccandy.backgrounds then
+	if ccandy.tweaks.backgrounds then
 		if not bg or (type(bg) == "string" and string.len(bg) <= 0) then
 			bg = bgcolors[ccandy.bgcolors[bg]]
 		end		
@@ -361,14 +402,6 @@ local function getANSI(name,bgcolor)	--getANSI todo is passed
 	return e
 end
 local function boolswitch(v) return not v end
-
---[[
-	Print an entire table, limited by the depth arg or the default depth/2
-	Only the first stage prints a stacktrace, and only if Title is included in args
-	Prints in layers separated by tabs
-	Prints in index order first, then keys non-deterministically
-	Keys have their tables and functions sorted and printed at the end, collecting all the simple variables
-]]
 local function isEmpty(t)
 	local empty = true
 	if #t>0 then empty = false
@@ -380,9 +413,6 @@ local function isEmpty(t)
 	end
 	return empty
 end
-
-
-
 --[[ TODO:
 	- [ ] brackets don't appear behind their table values, this should be rectified
 	- [ ] perhaps class instances should not be dug into, based on something set in classic:extend
@@ -391,24 +421,6 @@ end
 	- [ ] Additionally, some tables appear to have another color as their "empty space" on the open bracket line
 	- [ ] Removing more background colors because they don't all look good in this context.
 ]]
-
-
-local index_colors = {
-    "\27[97m", -- Bright White
-    "\27[96m", -- Bright Cyan
-    "\27[94m", -- Bright Blue
-    "\27[92m", -- Bright Green
-    "\27[93m", -- Bright Yellow
-    "\27[31m", -- Red
-    "\27[36m", -- Cyan
-    "\27[35m", -- Magenta
-    "\27[34m", -- Blue
-    "\27[32m", -- Green
-    "\27[33m", -- Yellow
-    "\27[90m", -- Gray (Muted)
-    "\27[30m\27[47m", -- White on Black
-}
-
 local function getWrapped(tbl, index)
     -- Ensure the input is a table
     assert(type(tbl) == "table", "First argument must be a table")
@@ -424,7 +436,6 @@ local function getWrapped(tbl, index)
 
     return tbl[wrappedIndex]
 end
-
 local function checkExclusion(key, exclude)
     ccandy.assert(type(exclude) == "table", "Exclude must be a table")
     if type(exclude.prefixes)=="table" then
@@ -443,35 +454,64 @@ local function dname(_,name)
 	if type(_)=="table" then _._tableName = name end
 	return _
 end
-
-local defaultExclude = {prefixes = {"_","__","_c_",}, keys = {}}
-
-
-local function debugLayers(args, visited)
+local function getTab(t)
+	t = t or ccandy.tweaks.tabSize
+	if type(t) == "string" then return t end	--just return the tab if it's already a string
+	local tab = ""
+	for i=1,t do
+		tab = tab .. " "
+	end
+	return tab
+end
+local function debugLayers(args, visited)		--#LAYERS --#DEBUGLAYERS
     visited = visited or {} -- Tracks already visited tables
-    local t = args.t or args[1] or args.table
+    local t = args._t or args.t or args._table or args.table or args[1]
     if type(t) ~= "table" then
         return inspect(t) -- If not a table, return the inspected value
     end
 
-    -- Initialize arguments
-    local depth = args.depth or math.floor(ccandy.tableDepthLimit / 2)
+	local level = ccandy:_getLevel(args.level or 0)
+	local parseStart = args.parseStart or ccandy.controls.Start
+    local depth = args.depth or math.floor(ccandy.controls.Table_Depth_Limit / 2)
     local colorDepth = args.colorDepth or 1
     local color = resetANSI .. getWrapped(index_colors,colorDepth)
-    local tab = args.tab or ""
+	local formerColor = resetANSI..getWrapped(index_colors,colorDepth-1)
     local title = args.title or ""
     local exclude = args.exclude or defaultExclude --TODO: needs to be able to exclude classic's __methods
 
+	--Prepare Tabs
+	local tab, halftab
+	if type(args.tab)=="number" then
+		halftab = getTab(args.tab - ccandy.tweaks.tabSize)
+		tab = getTab(args.tab)
+	elseif type(args.tab)=="string" then
+		halftab = getTab(string.len(args.tab)- ccandy.tweaks.tabSize)
+		tab = args.tab
+	else
+		halftab = getTab(ccandy.tweaks.tabSize/2)
+		tab = getTab()
+	end
+	--tab = tab .. "++"
+	--halftab = halftab .."\\"
     -- Track visited tables
     local addr = tostring(t)
     if visited[addr] then
-        return color .. tab .. title .. " = <already visited> \r\n"
+        return formerColor .. halftab .. title .. color.. " = <already visited>" .. inspect(t) .. " \r\n"
     end
     visited[addr] = true
 
     -- Prepare output
-    local output = color .. tab .. title .. " = {\r\n"
-    if depth <= 0 then
+	
+	local output = ""
+	if not visited.___initialized then 	--exclusively for the title of the whole printout.
+		output = output..getCallLine("DEBUG",level,parseStart) 
+		halftab = ""
+		formerColor = color
+		visited.___initialized = true
+	end
+    output = output .. formerColor .. halftab .. title .. " = {"..getTab(ccandy.tweaks.tabSize)..inspect(t).."\r\n"
+
+	if depth <= 0 then
         output = output .. color .. tab .. "  <depth limit reached>\r\n" .. color .. tab .. "}\r\n"
         return output
     end
@@ -485,21 +525,21 @@ local function debugLayers(args, visited)
         local valueType = type(v)
         if valueType == "table" then
 			local keyCount = 0
-			for _ in pairs(v) do keyCount = keyCount + 1 end
-		
+			local nested = false
+			for _,k in pairs(v) do keyCount = keyCount + 1 if type(v)=="table" then nested = true end end
 			if keyCount == 0 then
 				output = output .. color .. tab .. "[" .. tostring(k) .. "] = { } \r\n"
-			elseif keyCount <= 3 then -- Inline formatting for small tables
+			elseif nested==false and keyCount <= 5 then -- Inline formatting for small tables
 				local inline = "{ "
 				for subKey, subValue in pairs(v) do
 					inline = inline .. tostring(subKey) .. " = " .. inspect(subValue) .. ", "
 				end
 				inline = inline:sub(1, -3) .. " }" -- Remove trailing comma
-				output = output .. color .. tab .. "[" .. tostring(k) .. "] = " .. inline .. "\r\n"
+				output = output .. color .. tab .. "[" .. tostring(k) .. "] = " .. formerColor .. inline .. "\r\n"
 			else
 				output = output .. debugLayers({
 					table = v,
-					tab = tab .. ccandy.debugLTab,
+					tab = string.len(tab) + ccandy.tweaks.tabSize,
 					exclude = exclude[k],
 					depth = depth - 1,
 					title = "[" .. tostring(k) .. "]",
@@ -507,7 +547,7 @@ local function debugLayers(args, visited)
 				}, visited)
 			end
         elseif valueType == "function" then
-            output = output .. color .. tab .. "[" .. tostring(k) .. "] = <function>\r\n"
+            output = output .. color .. tab .. "[" .. tostring(k) .. "] = (function)"..inspectFunc(v).."\r\n"
         else
             output = output .. color .. tab .. "[" .. tostring(k) .. "] = " .. inspect(v) .. "\r\n"
         end
@@ -515,26 +555,91 @@ local function debugLayers(args, visited)
         ::skip::
     end
 
-    output = output .. color .. tab .. "}\r\n"
+    output = output .. formerColor .. tab .. "}\r\n"
     return output
+end
+
+--[[ Private Methods ]]
+--used for internal debugging only.
+
+function ccandy:_getLevel(l)
+	if self.controls.Override then return self.controls.Trace_Level else return l end
+end
+function ccandy._display(color, disp)	--#DISPLAY
+	if ccandy.gui then
+		if type(disp)=="string" then
+			table.insert(ccandy._drawTable,ccandy._drawObject("string",color,disp))
+		end
+	else	--		ccandy._display("warn",{heading,since})
+		if type(color) == "table" or type(disp)=="table" then
+			ccandy.printCTable(color,disp)
+		elseif color == "none" then
+			ccandy.printC("",disp)
+		else
+			ccandy.printC(color,disp)
+		end
+	end
+end
+
+function ccandy._debug(...)	--#_DEBUG
+	local args = {...}
+	local colors = {["debug"] = "\x1B[31m", ["string"] = "\x1B[32m", ["boolean"] = "\x1b[33m", ["table"] = "\x1b[94m", ["function"] = "\x1b[35m", ["number"] = "\x1b[36m"	}
+	local output = colors.debug.." Internal Debug in "
+	output = output.. getCallLine("INTERNAL",10,1)..resetANSI
+	
+		
+	for i,v in ipairs(args) do
+		local color = colors[type(v)]
+		output = output..color..tostring(v)..", "
+	end
+	print(output..resetANSI)
+end
+
+--[[ Public Methods   ]]
+----[[	Manage the Library 	]]
+function ccandy.setCandyProp(props)
+	assert(type(props) == "table")
+	for k,v in pairs(props) do
+		if type(v) ~= "function" and type(v) ~= "table" then
+			ccandy[k] = v
+			ccandy.message(k .. " set to "..tostring(v))
+		end
+	end
 end
 function ccandy.setGUI(set)
 	if set then ccandy.gui = set else ccandy.gui = boolswitch(ccandy.gui) end
 end
-function ccandy.debugL(...)	--t,title,depth or args = {table table, int depth, string title}
+
+
+----[[  Library Features   ]]
+
+function ccandy.debugL(...)	--t,title,depth or args = {table table, int depth, string title} #DEBUGL
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.debug then return end
 	local args = {...}
-	if type(args[1]) == "table" and not args[2] then
-		ccandy.display("none",debugLayers(args[1]))
+	local t, title, depth = args[1], args[2], args[3]
+
+
+	if type(t) == "table" then
+		if title then
+			local a = {t = args[1], title = args[2], depth = args[3]}
+			ccandy._display("none",debugLayers(a))
+
+		else
+			if t._t or t._table or t.table or t.t then	--it is an arg table. Also, #deprecating #deprecate I'm deprecating the use of "table" and "t" because it's too prone to error
+				ccandy._display("none",debugLayers(t))					--use _t or _table instead.
+			else	--it is a table, to be inspected directly
+				ccandy._display("none",debugLayers{t=t})
+			end
+		end
 	else
-		local a = {t = args[1], title = args[2], depth = args[3]}
-		ccandy.display("none",debugLayers(a))
+		local a = {t=t, title=title, depth=depth}
+		ccandy._display("none",debugLayers(a))
 	end
 end
 function ccandy.debugN(_,name,level,parseStart)
 	ccandy.debug(dname(_,name),level,parseStart)
 end
-function ccandy.debug(_,level,parseStart) -- print magenta to console, takes a string or table. Only when debugOn is on.
+function ccandy.debug(_,level,parseStart)			--#DEBUG
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.debug then return end
 	local p = getCallLine("DEBUG",level,parseStart)
 	if type(_) ~= "table" then 
@@ -575,64 +680,61 @@ function ccandy.debug(_,level,parseStart) -- print magenta to console, takes a s
 		end
 		p = p:match("^(.-)[,\r\n]?$")
 	end
-	ccandy.display("debug",p)
+	ccandy._display("debug",p)
 end
-function ccandy.todo(_) --ccandy.todo{"Update date","XChecked Step 1","Unchecked Step 2","Unchecked Step 3"}
+function ccandy.todo(_) --#TODO
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.todo then return end
 	local level = ccandy:_getLevel(1)
 	local todotab = ccandy.toDoTab
-	if ccandy.todosOn and ccandy.debugOn then
-		if type(_) ~= "table" then _ = {tostring(_)} end
-		local p1 = getCallLine("TODO",level)
-		local p2 = nil
-		local p3 = ""
-		local checked = "[X] "
-		local unchecked = "[ ] "
-		local checkbox = ""
-		local exTimePassed
-		local datefound,date,timePassed
-		for i=1, #_ do
-			local item = _[i]
-			if not datefound then date, timePassed = compareDate(item) end
-			if date then
-				exTimePassed = timePassed
-				if timePassed >= ccandy.toDoExpiration then
-					p2 = "     WARNING: "..tostring(timePassed).." days since this Todo list was updated!"
-				end
-				datefound = true
-				date = false
+	if type(_) ~= "table" then _ = {tostring(_)} end
+	local p1 = getCallLine("TODO",level)
+	local p2 = nil
+	local p3 = ""
+	local checked = "[X] "
+	local unchecked = "[ ] "
+	local checkbox = ""
+	local exTimePassed
+	local datefound,date,timePassed
+	for i=1, #_ do
+		local item = _[i]
+		if not datefound then date, timePassed = compareDate(item) end
+		if date then
+			exTimePassed = timePassed
+			if timePassed >= ccandy.tweaks.toDoExpiration then
+				p2 = todotab.."WARNING: "..tostring(timePassed).." days since this Todo list was updated!"
+			end
+			datefound = true
+			date = false
+		else
+			local s, isChecked = checkChecked(tostring(_[i]))
+			if isChecked then
+				checkbox = checked
 			else
-				local s, isChecked = checkChecked(tostring(_[i]))
-				if isChecked then
-					checkbox = checked
-				else
-					checkbox = unchecked
-				end
+				checkbox = unchecked
+			end
 
-				local _s, count = string.gsub(s,"*","")
-				local tab = ""
-				for i=1, count do
-					tab = tab..todotab
-				end
-				p3 = p3.."  "..tab..checkbox.._s
-				if i < #_ then
-					p3 = p3.."\r\n"
-				end
+			local _s, count = string.gsub(s,"*","")
+			local tab = ""
+			for i=1, count do
+				tab = tab..todotab
+			end
+			p3 = p3.."  "..tab..checkbox.._s
+			if i < #_ then
+				p3 = p3.."\r\n"
 			end
 		end
-		local warncolor = nil
-		if exTimePassed then
-			if exTimePassed >= (ccandy.toDoExpiration * 3) then
-				warncolor = getANSI("error")
-			elseif exTimePassed >= ccandy.toDoExpiration then
-				warncolor = getANSI("error")
-			end
-		end
-		ccandy.display({"todo","todo"},{p1,p2,p3})
-		--ccandy.printCTable({getANSI("todo"),warncolor,getANSI("todo")},{p1,p2,p3})
 	end
+	local warncolor = nil
+	if exTimePassed then
+		if exTimePassed >= (ccandy.tweaks.toDoExpiration * 3) then
+			warncolor = getANSI("error")
+		elseif exTimePassed >= ccandy.tweaks.toDoExpiration then
+			warncolor = getANSI("error")
+		end
+	end
+	ccandy._display({"todo","warn","todo"},{p1,p2,p3})
 end
-function ccandy.remind(setdate,reminderdate,_)
+function ccandy.remind(setdate,reminderdate,_)			--#REMIND
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.remind then return end
 	local date, timePassedSinceSet = compareDate(setdate)
 	assert(date,"ccandy.reminder called without setdate!")
@@ -643,7 +745,7 @@ function ccandy.remind(setdate,reminderdate,_)
 		local since = "A reminder was set on "..setdate.." "..timePassedSinceSet.." days ago!"
 		local reminder = ""
 		local post = ccandy.reminderfooter
-		ccandy.display("warn",{heading,since})
+		ccandy._display("warn",{heading,since})
 		--ccandy.printCTable(ccandy.colors.warn,{heading, since})
 		if type(_) == "table" then
 			for i,v in ipairs(_) do
@@ -670,8 +772,8 @@ function ccandy.remind(setdate,reminderdate,_)
 				end
 			end
 		end
-		ccandy.display("warn",reminder)
-		ccandy.display("remind",post)
+		ccandy._display("warn",reminder)
+		ccandy._display("remind",post)
 		--ccandy.printC(ccandy.colors.warn,reminder)
 		--ccandy.printC(getANSI("remind"),post)
 	end
@@ -693,15 +795,19 @@ function ccandy.success(_,level) --print green to console, takes a string or tab
 			p = p..", "
 		end
     end
-	ccandy.display("success",p)
+	ccandy._display("success",p)
     --ccandy.printC(getANSI("success"),p)
 end
-function ccandy.message(_,level,color,bgcolor) --print yellow to console, takes a string or table
+function ccandy.message(...) --#MESSAGE
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.message then return end
+	local args = {...}
+	local _, level, color, bgcolor
+	if type(args[1]) ~= "table" then _ = {_} else _ = args[1] end
+	if type(args[2]) == "string" then color = args[2] bgcolor = args[3] level = nil end
+	if type(args[2]) == "number" then level = args[2] color = args[3] bgcolor = args[4] end
 	color = color or "cyan"
 	level = ccandy:_getLevel(level) or 2
-    if type(_) ~= "table" then _ = {_} end
-	local p = getCallLine("Message",level,parseStart)
+	local p = getCallLine("Message",level)
     for i=1, #_ do
 		item = _[i]
 		if type(item)=="function" then
@@ -713,7 +819,9 @@ function ccandy.message(_,level,color,bgcolor) --print yellow to console, takes 
 			p = p..", "
 		end
     end
-	ccandy.display(color,p)
+	if bgcolor then color = color.."|"..bgcolor end
+	print(color)
+	ccandy._display(color,p)
     --ccandy.printC(color,p)
 end
 function ccandy.warn(_,level,parseStart) --print yellow to console, takes a string or table
@@ -731,7 +839,7 @@ function ccandy.warn(_,level,parseStart) --print yellow to console, takes a stri
 			p = p..", "
 		end
     end
-	ccandy.display("warn",p)
+	ccandy._display("warn",p)
     --ccandy.printC(getANSI("warn"),p)
 end
 function ccandy.stop(_,level,parseStart) --print red to console then stop the program
@@ -748,7 +856,7 @@ function ccandy.assert(eval,msg,stop)
 	if not eval then
 		local p = getCallLine("Assertion Fail",level, parseStart)
 		p = p .. msg
-		ccandy.display("error",p)
+		ccandy._display("error",p)
 		--ccandy.printC(getANSI("error"),p)
 		if stop then
 			error(p)	--use lua's error here, because ccandy.assert already gives us the relevant info
@@ -773,10 +881,12 @@ function ccandy.error(_,level,parseStart) --print red to console, takes a string
 			p = p..", "
 		end
     end
-	ccandy.display("error",p)
+	ccandy._display("error",p)
     --ccandy.printC(getANSI("error"),p)
 end
 
+
+----[[  Extra Visual Methods   ]]
 function ccandy.blank(msg,n)
 	if type(msg) == "number" then n = msg; msg = nil end
 	n = n or 10
@@ -784,8 +894,8 @@ function ccandy.blank(msg,n)
 	for i=1,n do
 		p = p .. "\r\n"
 	end
-	if msg then ccandy.display("green",tostring(msg)) end
-	ccandy.display("none",p)--io.write(p)
+	if msg then ccandy._display("green",tostring(msg)) end
+	ccandy._display("none",p)
 end
 function ccandy.printCBG(_, color, bg, reset)	
 	local s = ""
@@ -799,70 +909,46 @@ function ccandy.printCBG(_, color, bg, reset)
 		s = s .. tostring(_)
 	end
 	s = s .. "\r\n"
-	ccandy.display("none",s)
-	if reset then ccandy.display("reset")io.write(resetANSI) end
+	ccandy._display("none",s)
+	if reset then ccandy._display("reset")io.write(resetANSI) end
 end
-function ccandy.display(color, disp)	---beeeeeg design change here.
-	if ccandy.gui then
-		if type(disp)=="string" then
-			table.insert(ccandy._drawTable,ccandy._drawObject("string",color,disp))
-		end
-	else
-		if type(color) == "table" then
-			local t = {}
-			for i=1, #color do
-				t = getANSI(color[i])
-			end
-			ccandy.printCTable(t,disp)
+function ccandy.printC(ANSI, _)		--#PRINTC
+	if ccandy.controls.Colors then
+		local c, fg, bg
+		if string.find(ANSI,"|") then
+			fg, bg = ANSI:match("([^|]+)|([^|]+)")	--match if color is sent as a string of "Blue|Yellow"
+			c = getANSI(fg, bg)
+		elseif ccandy.colors[ANSI] or consolecolors[ANSI] then
+			c = getANSI(ANSI)
 		else
-			ccandy.printC(getANSI(color),disp)
+			c = ANSI
 		end
-	end
-end
-function ccandy.printC(ANSI, _)
-	if not ccandy.colorsOff then
-		local fg, bg = ANSI:match("([^|]+)|([^|]+)")
-		if not fg then fg = ANSI end
-		local c = consolecolors[fg]
-		local b = bgcolors[bg]
-		if not c then c = fg end
-		if bg and not b then b = bg end
-		if b then c = c..b end
 		io.write(c)
 	end
+	_ = _ .. resetANSI
 	io.write(_)
 	io.write("\r\n")
-	io.write(resetANSI)
-	::skip::
 end
-function ccandy.printCTable(cTable, sTable)	--print a table of strings with a table of colors, used in Todo list mainly
+function ccandy.printCTable(cTable, sTable)	--#PRINTCTABLE
 	local onlyColor
-	if type(cTable) ~= "table" then onlyColor = cTable end
+	if type(cTable) == "string" then onlyColor = cTable end
+	if type(sTable) == "string" then sTable = {sTable} end
 	for i=1, #sTable do
 		local s = sTable[i]
 		if s then
-			local c = onlyColor or cTable[i]
+			local c = onlyColor or getWrapped(cTable,i)
 			c = c or "reset"
 			ccandy.printC(c,s)
 		end
 	end
 end
-function ccandy.setCandyProp(props)
-	assert(type(props) == "table")
-	for k,v in pairs(props) do
-		if type(v) ~= "function" and type(v) ~= "table" then
-			ccandy[k] = v
-			ccandy.message(k .. " set to "..tostring(v))
-		end
-	end
-end
 function ccandy._drawObject(t,color,item,x,y,sx,sy,font)
 	local object = {}
-	x = x or ccandy.displayProperties.x
-	y = y or ccandy.displayProperties.y
-	sx = sx or ccandy.displayProperties.sx
-	sy = sy or ccandy.displayProperties.sy
-	font = font or ccandy.displayProperties.font
+	x = x or ccandy._displayProperties.x
+	y = y or ccandy._displayProperties.y
+	sx = sx or ccandy._displayProperties.sx
+	sy = sy or ccandy._displayProperties.sy
+	font = font or ccandy._displayProperties.font
 	local oldfont = love.graphics.getFont()
 	if type(t)=="string" then
 		function object.draw()
@@ -878,9 +964,8 @@ function ccandy._drawObject(t,color,item,x,y,sx,sy,font)
 
 end
 
-function ccandy:_getLevel(l)
-	if self.overrideLevel then return self.baseLevel else return l end
-end
+
+----[[  load, update, draw, export, test ]]
 
 local dlist = {
 	{"success"," Success messages will not display"},
@@ -893,9 +978,140 @@ local dlist = {
 	{"error","   Ignoring all errors!"},
 	{"stop","    Program stops will be ignored."},
 }
+local loremWords = {
+    "Lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit", 
+    "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore", "et", 
+    "dolore", "magna", "aliqua", "Ut", "enim", "ad", "minim", "veniam", "quis", 
+    "nostrud", "exercitation", "ullamco", "laboris", "nisi", "aliquip", "ex", 
+    "ea", "commodo", "consequat", "Duis", "aute", "irure", "dolor", "in", 
+    "reprehenderit", "voluptate", "velit", "esse", "cillum", "dolore", "eu", 
+    "fugiat", "nulla", "pariatur", "Excepteur", "sint", "occaecat", "cupidatat", 
+    "non", "proident", "sunt", "in", "culpa", "qui", "officia", "deserunt", 
+    "mollit", "anim", "id", "est", "laborum"
+}
+local function randomWord()
+    return loremWords[math.random(#loremWords)]
+end
+local function LoremIpsum(n,div)
+	div = div or " "
+	n = n or 20
+    local result = ""
+    for i=1, n do
+		result = result .. randomWord()..div
+	end
+    return result
+end
+
+local function generateRandomKey(n)
+	n = n or 0
+	local i = math.random(1,2)
+	if i == 1 then
+		return tostring(n+1)
+	else
+		return LoremIpsum(2,"")
+	end
+end
+--string, number, big, function, bool
+local function generateRandomVar()
+	local t = math.random
+	if t == 1 then
+		return LoremIpsum(math.random(1,10))
+	elseif t == 2 then
+		return math.random(1,100) * (math.random(0, 1) * 2) - 1
+	elseif t == 3 then
+		return math.big
+	elseif t == 4 then
+		return function(...) end
+	elseif t == 5 then
+		return "bool"
+	else
+		return "nothing"
+	end
+
+end
+
+local function generateRandomFlatTable(keys)
+	local t = {}
+	local n = 0
+	keys = keys or 10
+	for i=1,keys do
+		local k = generateRandomKey(n)
+		local var = generateRandomVar()
+		if var == "bool" then
+			t[k] = true
+		elseif var == "nothing" then
+			t[k] = nil
+		else
+			t[k]=var
+		end
+	end
+	return t
+end
+
+function ccandy.test()		--#TEST
+
+	ccandy.selfReference = ccandy	--create a recursive reference for debugging
+	--[]
+	local externFunction = function(...) end
+	local testObject = {
+		str = "this is a string",
+		longstring = LoremIpsum(),
+		int = 12345,
+		bignumber = math.huge,
+		float = 54321.12345,
+		awesomeFunction = function(arg1, arg2, arg3) end,
+		trueBoolean = true,
+		falseBoolean = false,
+		nothing = nil,
+		varFunction = function(...) end,
+		refFunction = externFunction,
+		flatTable = generateRandomFlatTable(10),
+		nestedTable = {
+			level2 = {
+				LoremIpsum(),
+				level3 = {
+					LoremIpsum(),LoremIpsum(),LoremIpsum(),
+					str = "blah",
+					level4 = generateRandomFlatTable(3),
+				}
+			}
+		},
+		selfReferencingTable = generateRandomFlatTable(10),
+		shortTable = generateRandomFlatTable(3)
+	}
+	testObject.selfReference = testObject
+	testObject.selfReferencingTable.selfReference = testObject.selfReferencingTable
+	testObject.selfReferencingTable.selfselfReference = testObject.selfReferencingTable.selfReference
+	
+	local debugLayerTest = {t = testObject, title = "Test Table"}
+	local debugTest = testObject
+	local todoTest = {"11/01/2024","Make a new TODO!","XCross off an item!"}
+	local successTest = "Success test!"
+	local messageTest = "message test!"
+	local warnTest = {"warning!","this is your warning message!"}
+	local errorTest = {"error! You did an erroneous thing!"}
+	local assertTest = (1==2)
+	local assertmsgTest = "1==2 assertion failed you silly!"
+	local stopTest = "Stopping the program for test"
+	ccandy.debugL(debugLayerTest)
+	ccandy.debug(debugTest)
+	ccandy.remind("01/09/2025","01/09/2025","Make a new reminder!!")
+	ccandy.todo(todoTest)
+	ccandy.success(successTest)
+	ccandy.message(messageTest)
+	ccandy.warn(warnTest)
+	ccandy.error(errorTest)
+	ccandy.assert(assertTest,assertmsgTest)
+	
+
+	ccandy.selfReference = nil	--clean up recursive test reference
+
+	ccandy.stop(stopTest)
+end
 
 function ccandy.load()
-	--TODO: build tabs based on integer
+	ccandy.toDoTab = getTab(ccandy.tweaks.tabSize)
+	ccandy._drawTable = {}
 	if ccandy.controls.Debug_Level >= 1 then
 		local lev = ccandy.controls.Debug_Level
 		ccandy.controls.Debug_Level = 3
@@ -915,6 +1131,10 @@ function ccandy.load()
 		ccandy.switches.message = m
 		ccandy.controls.Debug_Level = lev
 	end	
+
+	if ccandy.dev.debugTheDebugger then
+		ccandy.test()
+	end
 end
 function ccandy.update(dt)
 	local self = ccandy
@@ -929,23 +1149,20 @@ function ccandy.draw()
 	end
 	self.drawTable = {}
 end
-
-
 function ccandy:export(n)
 	ccandy.load()
 	n = n or "_c_"
-	local ignore = {export=true, _getLevel=true, _dname=true,}
+	local ignore = {export=true, _getLevel=true, _dname=true,update=true,draw=true}
 	n = n or ""
 	for k,v in pairs(self) do
 		local p = "checking to export: "..tostring(k)
-		if not ignore[k] and type(v) == "function" then
+		if not ignore[k] and k:sub(1, 1) ~= "_" and type(v) == "function" then
 			local f = n..k
 			_G[f] = v
-			p = p.."->exported."
+			p = p.."->exported as "..f.."."
 		end
-		if self.debugTheDebugger then print(p) end
+		if self.dev.debugTheDebugger then print(p) end
 	end
-	local f = n.."ccandy"
 end
 
 

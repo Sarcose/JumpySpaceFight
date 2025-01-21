@@ -19,6 +19,8 @@ flux = require 'lib.flux'
 --[[   Encapsulation    ]]
 Object = require 'lib.classic'
 Classes = require 'load.classes'
+Prototypes = require 'load.prototypes'
+
 
 
 --[[       State        ]]

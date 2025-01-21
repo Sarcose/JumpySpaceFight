@@ -26,6 +26,7 @@
 --[[      #GRAPHICS----------------------------------------------------------]]
 --[[      #FILE--------------------------------------------------------------]]
 --[[      #EXPANSIONS--------------------------------------------------------]]
+--[[      #RUNCODE-----------------------------------------------------------]]
 --[[      #OVERLOADS---------------------------------------------------------]]
 --[[-------------------------------------------------------------------------]]
 require ('core.debugcandy'):export()
@@ -38,6 +39,10 @@ local g = {}
 
 --[[Debug     #DEBUG]]
 g.debug = {}
+function g.debug.toggle()
+	_G._Debugging = gcore.var.boolSwitch(_G._Debugging)
+	_c_message("gcore debug mode "..(_G._Debugging),"warn")
+end
 function g.debug.guitableprint(t, name, x, y, font, color, tab, offset,depth)
 	setparams = false
 	if tab == nil then setparams = true tab = "" end
@@ -257,9 +262,11 @@ function g.safe.get(table, key, default)
 	return type(table)=="table" and table[key] or default
 end
 function g.safe.release(object)
-    if object and object.release then
-        object:release()
-    end
+	if object then
+		if object.remove then object:remove()
+		elseif object.release then object:release()
+		end
+	end
 end
 function g.safe.profile(func, ...)	--consider putting this into a more robust display
     local start = love.timer.getTime()
@@ -738,21 +745,30 @@ function g.var.shallowcopy(orig)
     end
     return copy
 end
-function g.var.deepcopy(orig,src)
-    _c_debug("deepcopy called: batteries might have a better alternative",1)
-    local orig_type = type(orig)
+function g.var.deepcopy(orig, deep)
+    deep = deep or 0
+    if deep > _G._deepcopylimit then return {} end
+    if type(orig) == 'table' and _G._allobjects[orig] then
+        return _G._allobjects[orig] -- Return the reference to the shared object
+    end
     local copy
-    if orig_type == 'table' then
+    if type(orig) == 'table' then
         copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key,src)] = deepcopy(orig_value,src)
+        _G._allobjects[orig] = copy
+        for key, value in pairs(orig) do
+            if type(value) == "table" then
+                copy[key] = g.var.deepcopy(value, deep + 1)
+            else
+                copy[key] = value
+            end
         end
-        setmetatable(copy, deepcopy(getmetatable(orig),src))
-    else -- number, string, boolean, etc
+        setmetatable(copy, getmetatable(orig))
+    else
         copy = orig
     end
     return copy
 end
+
 function g.var.getCentered(w,h)
 	w = w or 1
 	h = h or 1
@@ -810,6 +826,10 @@ end
 
 g.graphics = {}
 --[[Graphics #GRAPHICS]]
+function g.graphics.getMousePosition()	--for now, assume the push library.
+	local rx,ry = love.mouse.getPosition()
+	return push:toGame(rx, ry)
+end
 function g.graphics.loadImageDataFromPath( filePath )
     local f = io.open( filePath, "rb" )
     if f then
@@ -931,7 +951,7 @@ function g.ex:add(filepath, prefix)
 end
 g.ex:add() --now, call the function. _g^crash_batteries is online.
 
---[[Overloads #OVERLOAD]]
+--[[Overloads #OVERLOADS]]
 
 
 --[[Replace print() with debugcandy, throw soft warnings w/trace if print() is used directly]]
@@ -950,7 +970,38 @@ end
 
 
 
+--[[ Run Code #RUNCODE]]
+local inputTable = {
+	controls = {
+		buttons = "all"
+	},
+	serialized = false,
+	wheels = true,
+	debug = true
+}
 
+function g:load()
+		--I think this is fine
+	self._input = Classes.Interface.Controller:new(inputTable)
+	self._input:createParentRefs(self)
+	Prototypes.Systems.ObjectSystem:attach(self)
+end
+
+function g:update(dt)
+	self._input:clear()
+	self._input:update(dt)
+	if self._Debugging ~= _G._Debugging then
+		self._Debugging = _G._Debugging
+		self:add()
+
+	end
+	--clickable debug elements from debugcandy
+end
+
+function g:draw()
+	--draw debug info if in debug mode.
+
+end
 
 
 --[[ Reference g into global gcore ]]

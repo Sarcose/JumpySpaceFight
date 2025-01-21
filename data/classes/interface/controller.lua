@@ -11,9 +11,16 @@ local defaultInputTable = { --this is a mouse-interface input table for designin
     serialized = false, --set to true to use the button table as a priority index and stop iterating the moment a button returns true
     wheels = true       --set to false to skip checking wheels
 }
+local allButtons = {    --for debug mode
+    'mb_left','mb_right','mb_middle','mb_left','mb_forward','mb_backward',
+    'bottomface','rightface','leftface','topface','pause','select',
+    'lbutton','rbutton','prev','printglobal','debug','shift','rb','alt','lb','reset',
+    'u','i','j','k','l','y','h','ctrl',
+}
 
 local function buildInput(i)
     i.queues = {       pressed = {}, directions = {}, down = {}, wheels = {}    }
+    if i.controls.buttons == "all" then i.controls.buttons = allButtons end
 end
 
 function Controller:new(input)
@@ -25,6 +32,11 @@ function Controller:new(input)
   return inst
 end
 
+function Controller:createParentRefs(Parent)
+    Parent.inputQueues = self.queues
+    Parent.inputImpulses = self.Impulse
+end
+
 local directionPairs = {left = {-1,0}, right = {1,0}, up = {0,-1}, down = {0,1}}
 
 function Controller:addImpulse(pair)
@@ -32,21 +44,29 @@ function Controller:addImpulse(pair)
 end
 
 function Controller:processImpulses()
-
+    local x,y = 0,0
+    for i,v in self.queues.impulses do
+        x = x + v.x
+        y = y + v.y
+    end
+    self.Impulse = {x=x,y=y,active=true}
 
 end
 
 function Controller:update(dt)
     local buttons = self.controls.buttons
     local serialized = self.serialized
+    local debug = self.debug
     local found = false
+    if debug and not _G.Debugging then return end
+    if not debug and _G.Debugging then return end
     for i=1, #buttons do
         if controller:pressed(buttons[i]) then
             self.queues.pressed[buttons[i]] = true
             self:addImpulse(directionPairs[buttons[i]])
             found = true
         elseif controller:down(buttons[i]) then
-            self.queues.pressed[buttons[i]] = true
+            self.queues.down[buttons[i]] = true
             self:addImpulse(directionPairs[buttons[i]])
             found = true
         end
@@ -59,7 +79,7 @@ function Controller:update(dt)
         end
     end
 
-    self:processImpulses()
+   -- self:processImpulses()
 end
 
 function Controller:clear()

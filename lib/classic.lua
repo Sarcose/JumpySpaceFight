@@ -10,6 +10,26 @@
 
 local Object = {}
 Object.__index = Object
+Object.systems = {}
+function Object:updateSystems(dt)
+  for i,v in ipairs(self.systems) do
+    if v.update then v:update(dt) end
+  end
+end
+function Object:drawSystems()
+  for i,v in ipairs(self.systems) do
+    if v.draw then v:draw() end
+  end
+end
+function Object:addSystem(sys,k)
+    table.insert(self.systems,sys)
+    self.systems[k] = sys
+end
+function Object:unloadSystems()
+  for i,v in ipairs(self.systems) do
+    if v.unload then v:unload() end
+  end
+end
 
 
 function Object:new(a)
@@ -49,9 +69,15 @@ function Object:extend(a)
   cls.super = self
   setmetatable(cls, self)
   if type(a)=="table" then cls = tablex.overlay(cls, a) end
+  _G._allobjects[cls] = cls
   return cls
 end
 
+function Object:remove()
+  _G._allobjects[self] = nil
+  if self.release then self:release() end
+
+end
 
 function Object:implement(...)
   for _, cls in pairs({...}) do
