@@ -1,5 +1,4 @@
 local c = {
-    Prototype = require 'data.prototypes.prototype',
     Entities = {},
     Framework = {
         State = require 'data.classes.framework.gamestate',

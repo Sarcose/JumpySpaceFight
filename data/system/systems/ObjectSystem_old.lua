@@ -3,15 +3,22 @@ local properties = {
     Objects = {
         categories = {},
         total = 0,
-        defaultCategory = "Main"
+        defaultCategory = "Main",
+        reindexLevel = 100, --set to a very high level first.
     }
 }
 -- Object._address = Self:add(Object, category) -- I don't think I'll use i but you never know
 
+function objectSystem:initialize()
+    self._self.Objects = gcore.var.deepcopy(properties.Objects)
+    self._self.AddObject = function(self,Object,cat,i) self.systems.ObjectSystem:addObject(Object,cat,i) end
+    self._self.RemoveObject = function(self,Object) self.systems.ObjectSystem:removeObject(Object) end
+end
+
 function objectSystem:addObject(Object, cat, i)
     cat = cat or self.Objects.defaultCategory
     if not self.Objects[cat] then 
-        self.Objects[cat] = {total = 0} 
+        self.Objects[cat] = {total = 0, reindex = 0} 
         table.insert(self.Objects.categories,cat)
     end
     if i == nil then i = #self.Objects[cat] + 1 end
@@ -32,38 +39,34 @@ function objectSystem:removeObject(Object)
     removed = true
     self.Objects.total = self.Objects.total - 1
     self.Objects[cat].total = self.Objects[cat].total - 1
+    self.Objects[cat].reindex = self.Objects[cat].reindex + 1
     return removed
 end
-function objectSystem:reindexObjects()
+function objectSystem:reindex(cat)
+    self = self._self
     local o,re
-    local cat, cat_table, ReCat
+    local ReCat = {}
+    local cat_table = self.Objects[cat] 
     self.Objects.total = 0
-    for i=1, #self.Objects.categories do
-        cat = self.Objects.categories[i]
-        cat_table = self.Objects[cat]
-        ReCat = {}
-        for index=1, #cat_table do
-            o = cat_table[index]
-            if o and o ~= "%Removed" then 
-                table.insert(ReCat,o) 
-                re = {
-                    success = true,
-                    category = cat,
-                    index = #ReCat,
-                    object = o
-                }
-                _safe.call(o.reindex,o,re)  --objects will have a "reindex" method that resupplies them with their index info
-                self.Objects.total = self.Objects.total + 1
-                cat_table.total = cat_table.total + 1
-            end
+    for index=1, #cat_table do
+        o = cat_table[index]
+        if o and o ~= "%Removed" then 
+            table.insert(ReCat,o) 
+            re = {
+                success = true,
+                category = cat,
+                index = #ReCat,
+                object = o
+            }
+            _safe.call(o.reindex,o,re)  --objects will have a "reindex" method that resupplies them with their index info
+            self.Objects.total = self.Objects.total + 1
+            cat_table.total = cat_table.total + 1
         end
-        self.Objects[cat] = ReCat
     end
+    self.Objects[cat] = ReCat
 end
-
-
-
 function objectSystem:update(dt)
+    self = self._self
     if self.Objects.total > 0 then
         local o, object_cat
         for i=1,#self.Objects.categories do
@@ -73,6 +76,9 @@ function objectSystem:update(dt)
                     o = object_cat[i]
                     _safe.call(o.update, o, dt)
                 end
+            end
+            if object_cat.reindex>self.Objects.reindexLevel then    --quick and dirty, may cause brief lag spikes?
+                self.systems.ObjectSystem:reindex(self.Objects.categories[i])
             end
         end
     end
@@ -87,7 +93,7 @@ function objectSystem:draw()
             if object_cat.total > 0 then
                 for i=1, #object_cat do
                     o = object_cat[i]
-                    called = _safe.call(o.draw, o, dt)
+                    called = _safe.call(o.draw, o)
                 end
             end
         end
@@ -109,8 +115,7 @@ function objectSystem:unload()
     end
 end
 
-local os = Classes.Prototype:new(objectSystem,properties)
 
-return os
+return objectSystem
 
 

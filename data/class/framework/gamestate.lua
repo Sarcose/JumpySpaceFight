@@ -1,24 +1,22 @@
+--Blueprint. Instances inherit directly from this.
 
 local defaults = {
     type = "State",
     Name = "NoName",
+
 }
-
+local systems = {
+    ObjectSystem = "ObjectSystem"
+}
+local implement = {}    --may end up implementing a menu?
 local State = Object:extend(defaults)
-local function testFunc(first, second, third, fourth)
-    _c_message{"Testing!",first,second,third,fourth}
-    return first, second, third, fourth
-end
 
-
-function State:new(a,name)
-    --print("instantiating new state from "..tostring(name))
+function State:new(a,name)  --use new because this is 
     local inst = self:extend(a)
-    Prototypes.Systems.ObjectSystem:attach(inst)
-    --_c_debug(inst)
+    self:addSystems(systems)
+    self:superImplement(implement)
     return inst
 end
-
 
 function State:update(dt)
     _safe.call(self.input.update,self,dt)

@@ -10,7 +10,7 @@
 
 local Object = {}
 Object.__index = Object
-Object.systems = {}
+Object.systems = {} --all objects start with basic systems framework
 function Object:updateSystems(dt)
   for i,v in ipairs(self.systems) do
     if v.update then v:update(dt) end
@@ -21,14 +21,36 @@ function Object:drawSystems()
     if v.draw then v:draw() end
   end
 end
+function Object:addSystems(sys)
+  for k,v in pairs(sys) do
+    local s = Systems[v] --will not parse >1 deep but for this one it's not necessary
+    self:addSystem(s,k)
+  end
+end
 function Object:addSystem(sys,k)
     table.insert(self.systems,sys)
     self.systems[k] = sys
-end
+    if type(self.systems[k].initialize) == "function" then self.systems[k].initialize(self) end
+    self.systems[k]._self = self
+  end
 function Object:unloadSystems()
   for i,v in ipairs(self.systems) do
     if v.unload then v:unload() end
   end
+end
+function Object:superImplement(...)
+  for _, path in pairs({...}) do
+    local cls = Prototypes[path]  --TODO: needs work, will not parse >1 deep
+    self:implement(cls)
+  end
+
+end
+
+function Object:update(dt)
+  self:updateSystems(dt)
+end
+function Object:draw()
+  self:drawSystems()
 end
 
 
@@ -38,7 +60,7 @@ function Object:new(a)
   inst.type = inst.type or "Object"
   if string.upper(tostring(inst.name)) == "NONAME" then 
     inst.name = inst.type
-    inst._tableName = inst._tableName or "primitive "..inst.name
+    inst._tableName = inst._tableName or ("primitive "..inst.name)
   else
     inst._tableName = inst._tableName or inst.name
   end
