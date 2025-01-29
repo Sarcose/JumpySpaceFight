@@ -10,48 +10,8 @@
 
 local Object = {}
 Object.__index = Object
-Object.systems = {} --all objects start with basic systems framework
-function Object:updateSystems(dt)
-  for i,v in ipairs(self.systems) do
-    if v.update then v:update(dt) end
-  end
-end
-function Object:drawSystems()
-  for i,v in ipairs(self.systems) do
-    if v.draw then v:draw() end
-  end
-end
-function Object:addSystems(sys)
-  for k,v in pairs(sys) do
-    local s = Systems[v] --will not parse >1 deep but for this one it's not necessary
-    self:addSystem(s,k)
-  end
-end
-function Object:addSystem(sys,k)
-    table.insert(self.systems,sys)
-    self.systems[k] = sys
-    if type(self.systems[k].initialize) == "function" then self.systems[k].initialize(self) end
-    self.systems[k]._self = self
-  end
-function Object:unloadSystems()
-  for i,v in ipairs(self.systems) do
-    if v.unload then v:unload() end
-  end
-end
-function Object:superImplement(...)
-  for _, path in pairs({...}) do
-    local cls = Prototypes[path]  --TODO: needs work, will not parse >1 deep
-    self:implement(cls)
-  end
 
-end
 
-function Object:update(dt)
-  self:updateSystems(dt)
-end
-function Object:draw()
-  self:drawSystems()
-end
 
 
 function Object:new(a)
@@ -89,6 +49,7 @@ function Object:extend(a)
   end
   cls.__index = cls
   cls.super = self
+  cls.type = cls.type or "Object"
   setmetatable(cls, self)
   if type(a)=="table" then cls = tablex.overlay(cls, a) end
   _G._allobjects[cls] = cls

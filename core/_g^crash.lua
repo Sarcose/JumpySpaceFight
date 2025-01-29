@@ -19,6 +19,8 @@
 --[[      #SAFE--------------------------------------------------------------]]
 --[[      #ACTOR-------------------------------------------------------------]]
 --[[      #COMPARISON--------------------------------------------------------]]
+--[[      #TYPES-------------------------------------------------------------]]
+--[[	  #CONTAINER---------------------------------------------------------]]
 --[[      #STATE-------------------------------------------------------------]]
 --[[      #MATHS-------------------------------------------------------------]]
 --[[      #COLOR-------------------------------------------------------------]]
@@ -29,14 +31,18 @@
 --[[      #RUNCODE-----------------------------------------------------------]]
 --[[      #OVERLOADS---------------------------------------------------------]]
 --[[-------------------------------------------------------------------------]]
+require 'core.debugcandy_hinting'
 require ('core.debugcandy'):export()
+_c_message("\n      NOTE TO DEV: any implementation question can be answered by the example in reality.lua",1)
+
 --require 'core.debugcandytest'     --uncomment this when uploading new debugcandy examples
 require 'core.reminders'
 --Intended use: local rsign = gcore.var.rsign
 --Or just call gcore.var.rsign directly
 --This way we can call all our utility functions with intellisense if possible
-local g = {}
 
+
+local g = {}
 --[[Debug     #DEBUG]]
 g.debug = {}
 function g.debug.toggle()
@@ -250,6 +256,76 @@ function g.debug.loadingBar(value, start, goal, text)	--TODO: for now only use s
 	end
 end
 
+---@type fun(level?: integer, depth?: integer, parseStart?: integer)
+---@return string
+function g.debug.extractCallerInfo(level, depth, parseStart)
+		if not _G._Debugging then return "UNKNOWN (debugging off)" end
+		local stack = debug.traceback("", 2)
+		local lines = {}
+		for line in stack:gmatch("[^\n]+") do
+			table.insert(lines, line)
+		end
+		local ret = ""
+		level = level or 5
+		depth = depth or 3		
+		parseStart = parseStart or 4
+		local lastFile = nil
+		local currentRange = {}
+		if level then
+			for i = 1, level do
+				local n = (i - 1) + parseStart
+				local callerInfo = lines[n]
+				if callerInfo then
+					local file, line = callerInfo:match("([^:]+):(%d+)")
+					if file and line then
+						-- Handle the file path depth
+						local pathParts = {}
+						for part in file:gmatch("[^/\\]+") do
+							table.insert(pathParts, part)
+						end
+						-- Adjust the file path based on the depth
+						if depth > 0 then
+							local startIdx = math.max(#pathParts - depth, 1)
+							file = table.concat({unpack(pathParts, startIdx)}, "/")
+						else
+							file = pathParts[#pathParts]  -- Only the filename
+						end
+						file = string.gsub(file, "%s", "")  -- Remove spaces	--TODO: this might interfere with filenames that have spaces. Solution: don't use spaces imo
+						file = string.gsub(file, "/", ".")  -- Replace '/' with '.'
+						local num = tonumber(line)
+						if lastFile == file then
+							-- Add the line number to the current range
+							table.insert(currentRange, num)
+						else
+							-- If there is a previous range, collapse it
+							if #currentRange > 0 then
+								if #currentRange > 1 then
+									ret = ret .. "[" .. lastFile .. ":" .. table.concat(currentRange, ":") .. "]"
+								else
+									ret = ret .. "[" .. lastFile .. ":" .. currentRange[1] .. "]"
+								end
+							end
+							-- Start a new range for the new file
+							lastFile = file
+							currentRange = {num}
+						end
+					end
+				end
+			end
+	
+			-- Handle the last range (if any)
+			if #currentRange > 0 then
+				if #currentRange > 1 then
+					ret = ret .. "[" .. lastFile .. ":" .. table.concat(currentRange, ":") .. "]"
+				else
+					ret = ret .. "[" .. lastFile .. ":" .. currentRange[1] .. "]"
+				end
+			end
+		end
+		return ret
+	end
+
+
 _c_todo{"gcore safe todolist: ","get: use parseRef to grab an multiple indices"}
 g.safe = {}
 --[[Safety Functions #SAFE]]
@@ -341,6 +417,59 @@ function g.comparison.orZero(n)
 	if n<0 then return 0 else return n end
 end
 
+
+--[[types	  #TYPES]]
+--only for extension enums. add any new entries to gcoreTypeList down below under #REGISTERLIST using local t
+---@alias gcoreType
+---| '"Global"'       # Global namespaces only, not related to global primitives
+---| '"System"'       # A System from data.systems
+---| '"GameState"'    # GameStates which include title screen and such
+---| '"Overlay"'      # All UI systems are this type.
+---| '"Controller"'   # A controller, to be attached to an entity and menu before it works.
+---| '"Space"'        # Relational containers for entities. Where the game takes place.
+---| '"Entity"'		  # Basic class for Terrain, Item, Actor
+---| '"Template"'	  # Basic class for Terrain, Item, Actor
+--- #REGISTERLIST
+local gcoreTypeList = {"Global","System","GameState","Overlay","Controller","Space","Entity","Template"}
+
+--I THINK this is it. I MIGHT also use a new alias for gcoreSubType -- the purpose being,
+								--the types above are prototypes, and i don't want the subtypes to be in the same alias.
+
+
+g.container = {__registry = {}}
+--[[container		#CONTAINER]]
+_c_todo{"DebugCandy needs to be able to look for my custom __type system and respond accordingly, as it still often uses type() normally and expects a string, it will error when it fails to get this."}
+
+
+function g.container.registerType(t) --TODO: more typing functions as needed?
+	g.container.__registry[t] = true
+end
+
+function g.container.registerTypes(t)
+	for i=1,#t do g.container.registerType(t[i]) end
+end
+g.container.registerTypes(gcoreTypeList)
+
+
+---@type fun(cls: table, t: gcoreType)
+---@param cls table
+---@param t gcoreType
+---@param name? string
+function g.container.assignType(cls,t,name)
+    assert(type(cls,"table"),"\r\n|gcore message| assignType called without table! Only assign types in this way to tables, primitive types don't need this. cls: "..tostring(cls))
+	assert(g.container.__registry[t], "\r\n|gcore message| assignType called to assign invalid type of "..tostring(t).." which is not in gcore.container.__registry. type string passed MUST be a gcoreType extension!")
+	local _t = {}
+	_t.__primitive = "table"
+	_t.__name = name or cls.name or "Unnamed"
+	_t.__type = t
+	_t.__address = string.format("%p",cls)
+	_t.__assigned = "assigned at "..tostring(g.debug.extractCallerInfo()) 
+		--eventually we will want to be parsing the exact moment when a type is assigned, using a debug flag (parsing this will eat up CPU),
+		--in order to track down assignments that are somehow messed up, in the files themselves.
+	cls.__type = _t
+end
+
+
 g.state = {}
 --[[state           #STATE]]
 local function addMethods(a)
@@ -351,7 +480,7 @@ local function addMethods(a)
 
 end
 
--- TODO
+-- TODO	--I don't seem to be using this state library interestingly...
 function g.state.new_engine(...)  
     local args = {...}
     local c = {}
@@ -679,7 +808,7 @@ function g.color.rgbHSLmod(r,g,b,nh,ns,nl)
 end
 
 g.var = {}
---[[Variable operations #VARIABLE]]
+
 function g.var.rsign()
 	return math.random(0,1)*2-1
 end
@@ -952,7 +1081,65 @@ end
 g.ex:add() --now, call the function. _g^crash_batteries is online.
 
 --[[Overloads #OVERLOADS]]
+_G._oldType = type
+_G._oldAssert = assert
 
+function _G.assert(v,message)	--#ASSERT overload replaces assert with debugcandy's assert calling _c_stop
+	_c_assert(v,message,_c_stop)
+end
+
+
+--this is predicated on using methods.__addtype, or perhaps adding a __addtype into my core lib.
+--this adds a new __type field to all tables. This will be used to store "primitive type" "address" "name" in its own field
+--eventually __addType should ALSO validate that a type is not ALREADY added, and that the new type is not identical, preventing
+--new tables being made evry time. although... that may be unnecessary if I do my primitives correctly.
+
+---@type fun(v: any, comp?: any)
+---@param v any
+---@param comp? any type to compare to
+--- overload replaces type with a flexible typing comparison/fetch function
+function _G.type(v,comp)	--#TYPE 
+	if comp then	--pass two arguments baby and it becomes a comparison
+		if _G._oldType(v) == "table" then
+			if v.__type then
+				local t = v.__type
+				return t.__type == comp or t.__primitive == comp or t.__address == comp or t.__name == comp	--in other words we can now use type(object,test) to compare primitive, address, or name
+			else
+				return _G._oldType(v) == comp
+			end
+		else
+			return _G._oldType(v) == comp
+		end
+	else	--pass one argument and it returns a value
+		if _G._oldType(v) == "table" then
+			if v.__type then	--TODO: need a way to check against passing the whole __type vs. __type.__primitive
+				return v.__type.__primitive
+			else
+				return _G._oldType(v)
+			end
+		else
+			return _G._oldType(v)
+		end	
+	end
+end
+
+
+
+--- print the old type or the attributes of the __type table
+function _G.type_print(v)
+	local p
+	if _G._oldType(v)=="table" then
+		if v.__type then
+			local t = v.__type
+			p = {t.__primitive, t.__type, t.__name, t.__address, t.__assigned}
+		else
+			p = _G._oldType(v)
+		end
+	else
+		p = _G._oldType(v)
+	end
+	_c_message(p)
+end
 
 --[[Replace print() with debugcandy, throw soft warnings w/trace if print() is used directly]]
 
@@ -992,7 +1179,6 @@ function g:update(dt)
 	self._input:update(dt)
 	if self._Debugging ~= _G._Debugging then
 		self._Debugging = _G._Debugging
-		self:add()
 
 	end
 	--clickable debug elements from debugcandy

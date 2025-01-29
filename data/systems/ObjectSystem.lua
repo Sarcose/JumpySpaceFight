@@ -7,7 +7,6 @@ local properties = {
         reindexLevel = 100, --set to a very high level first.
     }
 }
--- Object._address = Self:add(Object, category) -- I don't think I'll use i but you never know
 
 function objectSystem:initialize()
     self._self.Objects = gcore.var.deepcopy(properties.Objects)

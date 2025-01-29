@@ -101,12 +101,6 @@ local ccandy = {	--All properties in this initial table are open to be tweaked b
 		sy = 1,
 		linespace = 0.5,
 	},
---[[	Deprecated Properties	]]
-	pathDepth = 1,			--now I don't remember what this is used for.
-	reminderheader = "==========!!!=======REMINDER=======!!!========",
-	reminderfooter = "=========!!!=======================!!!========",
-	toDoTab = "   ",
---[[	End of Deprecation	]]
 	colors = {
 		warn = "yellow",
 		error = "red",
@@ -125,6 +119,12 @@ local ccandy = {	--All properties in this initial table are open to be tweaked b
 		remind = "blue",
 		success = "black"
 	},
+	--[[	Deprecated Properties	]]
+	pathDepth = 1,			--now I don't remember what this is used for.
+	reminderheader = "==========!!!=======REMINDER=======!!!========",
+	reminderfooter = "=========!!!=======================!!!========",
+	toDoTab = "   ",
+--[[	End of Deprecation	]]
 }
 --[[ ANSI sequences ]]
 local resetANSI = "\x1B[m"
@@ -287,7 +287,6 @@ local function inspectFunc(func)	--#INSPECTFUNC
     return string.format(" addr:%s%s [%s:%s] Args: %d (%s)", 
         addr, name, src, line, nparams, isvararg)
 end
-
 local function inspect(i, refs)				--#INSPECT
     refs = refs or {}
     local t = type(i)
@@ -402,7 +401,7 @@ local function getANSI(name,bgcolor)		--#GETANSI
 	return e
 end
 local function boolswitch(v) return not v end
-local function isEmpty(t)
+local function isEmpty(t)	--where was I using this? it appears to be unused. 
 	local empty = true
 	if #t>0 then empty = false
 	else
@@ -413,7 +412,7 @@ local function isEmpty(t)
 	end
 	return empty
 end
---[[ TODO:
+--[[ TODO:	--needs to be updated as of 01/27/25
 	- [ ] brackets don't appear behind their table values, this should be rectified
 	- [ ] perhaps class instances should not be dug into, based on something set in classic:extend
 	- [X] instead of relying on printC for color, roll our own color. Use multicolored printouts to link tables, with all variety of color combos.
@@ -580,14 +579,11 @@ function ccandy._display(color, disp)	--#DISPLAY
 		end
 	end
 end
-
-function ccandy._debug(...)	--#_DEBUG
+function ccandy._debug(...)	--#_DEBUG	--used for internal debugging
 	local args = {...}
 	local colors = {["debug"] = "\x1B[31m", ["string"] = "\x1B[32m", ["boolean"] = "\x1b[33m", ["table"] = "\x1b[94m", ["function"] = "\x1b[35m", ["number"] = "\x1b[36m"	}
 	local output = colors.debug.." Internal Debug in "
 	output = output.. getCallLine("INTERNAL",10,1)..resetANSI
-	
-		
 	for i,v in ipairs(args) do
 		local color = colors[type(v)]
 		output = output..color..tostring(v)..", "
@@ -597,12 +593,28 @@ end
 
 --[[ Public Methods   ]]
 ----[[	Manage the Library 	]]
-function ccandy.setCandyProp(props)
+function ccandy.setCandyProp(props) 
 	assert(type(props) == "table")
+	local c, s, t, d = ccandy.controls, ccandy.switches, ccandy.tweaks, ccandy.dev
+	local setProp = function(p,v)
+		if c[p] then c[p] = v return true end
+		if s[p] then s[p] = v return true end
+		if t[p] then t[p] = v return true end
+		if d[p] then d[p] = v return true end
+
+	end
 	for k,v in pairs(props) do
 		if type(v) ~= "function" and type(v) ~= "table" then
-			ccandy[k] = v
-			ccandy.message(k .. " set to "..tostring(v))
+			--check various ccandy tables
+			if setProp(k,v) then ccandy.message(k .. " set to "..tostring(v))
+			else ccandy.error{"setCandyProp called with invalid value: ("..tostring(k).." = "..tostring(v)..")"} 
+			end
+		elseif k == "colors" and type(v) == "table" then
+
+
+		elseif k == "bgcolors" and type(v) == "table" then
+
+
 		end
 	end
 end
@@ -617,8 +629,6 @@ function ccandy.debugL(...)	--t,title,depth or args = {table table, int depth, s
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.debug then return end
 	local args = {...}
 	local t, title, depth = args[1], args[2], args[3]
-
-
 	if type(t) == "table" then
 		if title then
 			local a = {t = args[1], title = args[2], depth = args[3]}
@@ -778,37 +788,28 @@ function ccandy.remind(setdate,reminderdate,_)			--#REMIND
 		--ccandy.printC(getANSI("remind"),post)
 	end
 end
-function ccandy.success(_,level) --print green to console, takes a string or table
-	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.success then return end
-	level = ccandy:_getLevel(level) or 0	--success uses its own default, 0, because that makes sense to me
-    if type(_) ~= "table" then _ = {_} end
-	local p = getCallLine("SUCCESS!",level)
-	local item
-    for i=1, #_ do
-		item = _[i]
-		if type(item)=="function" then
-			item()
-		else
-			p = p..tostring(item)
-		end
-		if i < #_ then
-			p = p..", "
-		end
-    end
-	ccandy._display("success",p)
-    --ccandy.printC(getANSI("success"),p)
-end
 function ccandy.message(...) --#MESSAGE
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.message then return end
 	local args = {...}
-	local _, level, color, bgcolor
-	if type(args[1]) ~= "table" then _ = {_} else _ = args[1] end
+	local _, level, color, bgcolor, calltag
+	if type(args[1]) ~= "table" then 
+		_ = {args[1]} 
+	else 
+		_ = args[1] 
+		level = _.level
+		color = _.color
+		bgcolor = _.bgcolor
+		calltag = _.calltag
+	end
 	if type(args[2]) == "string" then color = args[2] bgcolor = args[3] level = nil end
 	if type(args[2]) == "number" then level = args[2] color = args[3] bgcolor = args[4] end
+	calltag = calltag or "Message"
 	color = color or "cyan"
-	level = ccandy:_getLevel(level) or 2
-	local p = getCallLine("Message",level)
-    for i=1, #_ do
+	level = ccandy:_getLevel(level) or 0
+	if type(bgcolor) == "number" then bgcolor = nil end --parseStart dummied out from old implements for now.
+	local p = getCallLine(calltag,level)
+	local item
+	for i=1, #_ do
 		item = _[i]
 		if type(item)=="function" then
 			item()
@@ -820,72 +821,54 @@ function ccandy.message(...) --#MESSAGE
 		end
     end
 	if bgcolor then color = color.."|"..bgcolor end
-	print(color)
 	ccandy._display(color,p)
-    --ccandy.printC(color,p)
 end
-function ccandy.warn(_,level,parseStart) --print yellow to console, takes a string or table
-    if ccandy.controls.Debug_Level < 1 or not ccandy.switches.warn then return end
-	if type(_) ~= "table" then _ = {_} end
-	local p = getCallLine("WARNING",level,parseStart)
-    for i=1, #_ do
-		item = _[i]
-		if type(item)=="function" then
-			item()
-		else
-			p = p..tostring(item)
-		end
-		if i < #_ then
-			p = p..", "
-		end
-    end
-	ccandy._display("warn",p)
-    --ccandy.printC(getANSI("warn"),p)
+function ccandy.success(...)
+	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.success then return end
+	local args = {...}
+	local m = {[1] = args[1], level = args[2] or 1, color = "success", calltag = "Success"}
+	ccandy.message(m)	--only _ and level are passed
 end
-function ccandy.stop(_,level,parseStart) --print red to console then stop the program
+function ccandy.warn(...)
+	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.warn then return end
+	local args = {...}
+	local m = {[1] = args[1], level = args[2] or 3, color = "warn", calltag = "WARNING"}
+	ccandy.message(m)	--only _ and level are passed
+end
+function ccandy.error(...)
+	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.warn then return end
+	local args = {...}
+	local m = {[1] = args[1], level = args[2] or 4, color = "error", calltag = "ERROR"}
+	ccandy.message(m)
+end
+
+
+function ccandy.stop(_,level) --print red to console then stop the program
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.stop then return end
-	parseStart = parseStart or 5
-	ccandy.error(_,level,parseStart)
+	ccandy.error(_,level)
 	if type(_) == "table" then _ = _[1] end
 	error("Stopped by ccandy.stop(): ".._.." (console may have more info)")
 end
-function ccandy.assert(eval,msg,stop) 
+function ccandy.assert(eval,msg,response) 	--#ASSERT
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.remind then return end
 	local level = ccandy:_getLevel(10)
-	local parseStart = parseStart
 	if not eval then
 		local p = getCallLine("Assertion Fail",level, parseStart)
 		p = p .. msg
-		ccandy._display("error",p)
-		--ccandy.printC(getANSI("error"),p)
-		if stop then
-			error(p)	--use lua's error here, because ccandy.assert already gives us the relevant info
+		if response then
+			if type(response)=="function" then 
+				p = "\r\n"..p
+				response(p) 
+			else 
+				ccandy.stop(p)
+			end
+		else
+			ccandy.error(p)
 		end
 		return false
 	end
 	return true
 end
-function ccandy.error(_,level,parseStart) --print red to console, takes a string or table
-	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.assert then return end
-	if type(_) ~= "table" then _ = {_} end
-    local p = getCallLine("ERROR",level,parseStart)
-	local item
-    for i=1, #_ do
-		item = _[i]
-		if type(item)=="function" then
-			item()
-		else
-			p = p..tostring(item)
-		end
-		if i < #_ then
-			p = p..", "
-		end
-    end
-	ccandy._display("error",p)
-    --ccandy.printC(getANSI("error"),p)
-end
-
-
 ----[[  Extra Visual Methods   ]]
 function ccandy.blank(msg,n)
 	if type(msg) == "number" then n = msg; msg = nil end
