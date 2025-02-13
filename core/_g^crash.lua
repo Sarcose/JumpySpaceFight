@@ -33,7 +33,7 @@
 --[[-------------------------------------------------------------------------]]
 require 'core.debugcandy_hinting'
 require ('core.debugcandy'):export()
-_c_message("\n      NOTE TO DEV: any implementation question can be answered by the example in reality.lua",1)
+_c_message("\n      NOTE TO DEV: latest next notes are in classinstances.lua",1)
 
 --require 'core.debugcandytest'     --uncomment this when uploading new debugcandy examples
 require 'core.reminders'
@@ -1124,14 +1124,23 @@ function _G.type(v,comp)	--#TYPE
 end
 
 
-
+--- @param v any
+--- @param expand boolean displays extra __type info, false by default
 --- print the old type or the attributes of the __type table
-function _G.type_print(v)
+function _G.type_print(v, expand)
 	local p
 	if _G._oldType(v)=="table" then
 		if v.__type then
 			local t = v.__type
 			p = {t.__primitive, t.__type, t.__name, t.__address, t.__assigned}
+			if expand then
+				p[1] = "primitive: "..p[1]
+				p[2] = "type: "		..p[2]
+				p[3] = "name: "		..p[3]
+				p[4] = "address: "	..p[4]
+				p[5] = "assigned: "	..p[5]
+			end
+			
 		else
 			p = _G._oldType(v)
 		end
@@ -1164,14 +1173,21 @@ local inputTable = {
 	},
 	serialized = false,
 	wheels = true,
-	debug = true
+	debug = true,
+	Name = "GCoreController"
 }
 
+
+_c_todo{"01/29/2025","Classes.Interface.Controller","Object.0"}
 function g:load()
 		--I think this is fine
-	self._input = Classes.Interface.Controller:new(inputTable)
+	self._input = Classes.Input:new(inputTable)
+	_c_debugN(self._input, "gcore._input")
+	_c_message("printing type of input object: ",_c_color("yellow") )
+	type_print(self._input, true)
+	error()
 	self._input:createParentRefs(self)
-	Prototypes.Systems.ObjectSystem:attach(self)
+	--Prototypes.Systems.ObjectSystem:attach(self)	-- don't use this anymore
 end
 
 function g:update(dt)

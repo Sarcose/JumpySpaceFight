@@ -28,8 +28,11 @@ return function(context)
 
     function Controller:new(input)
         input = input or defaultInputTable
-        local inst = self:extend()
-        inst.type = "Controller"
+        input.type = "Controller"
+        input.Name = input.Name or "[Unnamed] "
+        input.Name = input.Name .. "Input " ..tostring(_DATA.controllercount + 1)
+        local inst = self:extend(input)
+        if inst then _DATA.controllercount = _DATA.controllercount + 1 end
         buildInput(input)
         tablex.overlay(inst,input)
         return inst

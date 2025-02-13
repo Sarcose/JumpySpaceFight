@@ -22,22 +22,32 @@
         Item - collectorNear behavior (magnet)
         Actor - all behaviors
     
+    Thus:
 
-    Some:
-    Inputs:
-        Actor - AI, Controller
+    Entity:
+        Physics Shape
+        ExternForce (gravity) -- toggleables
+        Interaction engine
+            Terrain:
+                Defaults: ExternForces off, onTouched off, onDestroyed off
+                Interactions: situationally, onTouched, onDestroyed
+            Actor:
+                Defaults: ExternForce(Gravity) on, dropList On
+                onTouch, onTouched, onInteract, onDestroyed, dropList (player: dropList off)
+                AI (non-player) and Inputs (player)
+            Item:
+                Defaults: ExternForces(Gravity) creation dependent:
+                    Created by drop: on
+                    Created by map: off
+                onTouched (collect)
+                collectorNear behavior (magnet)
+            Mechanism:
+                onTouched, onExit, onInteract
 
 
-    Etc:
-        Projectile: subclass of Actor
 
-        onTouch - when Actor touches me
-        onRelease - Terrain/Item, when Actor uses a Releasing thing, detaching me from my anchor
-        onDestroy - Terrain/Item, when Actor uses a Destroying thing
-        onDeath - Actor, when Actor/Terrain/Environment/Condition kills me
-        collectorNear - Item, when an actor with Tag "collector" is within magnet range and isMagnetic
-            --enemies may be able to collect?
 
+            all of the above will be handled by Systems.Interaction
 ]]
 
 
@@ -46,7 +56,8 @@
 local defaults = {
     type = "Entity",
     Name = "EntityPrototype",
-    systems = {},   --deterministic order is very important here.
+    systems = {InteractionSystem = "InteractSystem"},   --deterministic order is very important here.
+    interactions = {},      --use this to establish a priority system for interactions, see InteractSystem.lua
     apply = {},
     update = "basic",
     draw = "basic",
@@ -58,12 +69,19 @@ return function(context)
 
     }
 
+    --parseTriggers goes in all entity updates
+
+    Entity.Terrain = require 'data.class.entity.terrain'(context)    
+    Entity.Actor = require 'data.class.entity.actor'(context)    
+    Entity.Item = require 'data.class.entity.item'(context)    
+    Entity.Mechanism = require 'data.class.entity.mechanism'(context)    
+
 
     function Entity:new(a)
 
 
     end
-
+    
 
     return Entity
 end

@@ -4,12 +4,13 @@
     Class = the basic data structure from classic.lua
     Template = a class implementation only for prototyping, no parents
                          /--------Input
-                        /-------
+                        /-------Overlay
     Class   --->\     /------ GameState  (a container of Map + entities + player state)
                 ----<--------Layer----Map----World (matryoshka of physical space layers)  
     Template-->/    \-------Entity--------\-------Terrain
                                             \------Actor
                                              \-----Item
+                                              \----Mechanism
 
 --]]
 --1: written 2: basic test 3: iterated once 4: iterated again 5: polished 6: etc.
@@ -47,7 +48,7 @@ function c:addSystem(sys,k)
     table.insert(self.systems,sys)
     self.systems[k] = sys
     self.systems[k]._self = self
-    if type(self.systems[k].initialize) == "function" then self.systems[k].initialize(self.systems[k]) end
+    if type(self.systems[k].initialize) == "function" then self.systems[k].initialize(self.systems[k],self) end
 end
 function c:unloadSystems()
   for i,v in ipairs(self.systems) do
@@ -136,6 +137,7 @@ function context.Class:new(a)
     return inst
 end
 function context.Class:extend(a)
+    _c_message("debugging context.Class:extend(a)",4)
     local systems = a.systems
     local apply = a.apply
     a.systems, a.implement = nil,nil
@@ -160,21 +162,22 @@ context.Class.Input = require 'data.class.interface.input'(context)           --
 context.Class.Space = require 'data.class.space.space'(context)               --[X]       
 context.Class.Entity = require 'data.class.entity.entity'(context)            --[X]
 
-_c_message("See 'template' for why Prototype has been changed.")
+
 
 --"Template" is a raw object that is "implemented" by Instances of the above Types. The Template Type is thus extremely basic
 --and missing certain methods.
-_c_warn("Finish template and class data structure return and then get to work on DnD!!!")
 context.Template = require 'data.template.template'               
 
 --systems are NOT instantiated, nor are they prototyped. They may not even need or reference Object at all.
 --Exception: I *might* use ObjectSystem as a primitive for more complex object manipulation. That is still UNCLEAR.
 
 --Actual DATA below. Individual templates and Individual Classes of various kinds.
-Templates = require ('data.template.templateInstances')(context)  --set up templates
+context.Templates = require ('data.template.templateInstances')(context)  --[X]
+context.Archetypes = require ('data.class.archetypes.archetypes')(context)
+
 Classes = require ('data.class.classInstances')(context) --instantiate all of GameStates, Overlays, Inputs, Spaces, Entities
+    --this will establish the structure of all classes and instantiate all prototypes, preparing to instantiate the rest as needed
 
 
-
-
+_c_warn("The next place to put together data will be accessed in templateInstances and classInstances!")
 

@@ -335,7 +335,7 @@ local function inspect(i, refs)				--#INSPECT
     else
         ret = tostring(i)
     end
-
+	t = tostring(t)
     local space = getSpacing(nil, "(" .. t .. ")")
     if refs == "flat" then space = "" end
     return "(" .. t .. ")" .. space .. symbol .. ret

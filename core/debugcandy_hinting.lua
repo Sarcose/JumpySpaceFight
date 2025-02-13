@@ -24,7 +24,18 @@
 ---@alias CMessageType table|string Will call indiced functions in tables
 ---@alias CAssertResponseType boolean|function
 
+---@alias candycolor
+---| '"yellow"'
+---| '"red"'
+---| '"blue"'
+---| '"cyan"'
+---| '"cyan"'
+---| '"yellow"'
+---| '"green"'
 
+---@param color candycolor
+--- noop to get colors for candy
+_c_color = function(color) return color end
 
 ---@type fun(props: table)
 ---@param props table int Debug_Level, bool Colors, bool GUI, int Start, int Trace_Level, bool Override, bool Keys, int Table_Depth_Limit, int toDoExpiration, str reminderheader, str reminderfooter, int tabSize, bool backgrounds

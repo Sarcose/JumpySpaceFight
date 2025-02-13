@@ -17,3 +17,9 @@ GAME_H = 1008--504*2--gameboy: 640x576
 --[[======ENCAPSULATION=====]]
 _allobjects = {}
 _deepcopylimit = 10
+
+
+
+--[[======DATA=====]]
+_DATA = {}
+_DATA.controllercount = 0
