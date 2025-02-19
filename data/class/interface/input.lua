@@ -72,8 +72,8 @@ return function(context)
         local serialized = self.serialized
         local debug = self.debug
         local found = false
-        if debug and not _G.Debugging then return end
-        if not debug and _G.Debugging then return end
+        if debug and not _G._Debugging then return end
+        if not debug and _G._Debugging then return end
         for i=1, #buttons do
             if controller:pressed(buttons[i]) then
                 self.queues.pressed[buttons[i]] = true

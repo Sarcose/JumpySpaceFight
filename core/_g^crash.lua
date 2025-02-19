@@ -41,13 +41,99 @@ require 'core.reminders'
 --Or just call gcore.var.rsign directly
 --This way we can call all our utility functions with intellisense if possible
 
+_G._CANDEBUG = true
 
 local g = {}
 --[[Debug     #DEBUG]]
-g.debug = {}
+g.debug = {dims = {x=0,y=0,r=0, sx=1,sy=1}, container = {strings = {}}}
 function g.debug.toggle()
 	_G._Debugging = gcore.var.boolSwitch(_G._Debugging)
-	_c_message("gcore debug mode "..(_G._Debugging),"warn")
+	_c_message("gcore debug mode "..tostring(_G._Debugging),"warn")
+end
+function g.debug:createCanvas()
+	self.canvas = lg.newCanvas(lg.getWidth(),lg.getHeight())
+end
+local locationTypeDefaults = {0,0,0,0,0}
+function g.debug.locationType(loc)
+	if type(loc) ~= "table" then loc = {} end
+	for i=1, #locationTypeDefaults do
+		loc[i] = loc[i] or locationTypeDefaults[i]
+	end
+	return loc
+end
+function g.debug:strPair(str,loc)
+	return {tostring(str),self.locationType(loc)}
+end
+function g.debug:push()
+	self.formerCanvas = lg.getCanvas()
+	lg.setCanvas(self.canvas)
+	lg.clear()
+end
+function g.debug:pop()
+	lg.setCanvas(self.formerCanvas)
+end
+function g.debug:drawContainer(x,y,r,sx,sy)
+	x,y,r,sx,sy = x or 0, y or 0, r or 0, sx or 1, sy or 1
+	local strings = self.container.strings
+	local strpair, str, loc, f
+	for k,v in pairs(strings) do
+		self:setFont()
+		strpair = v
+		if type(strpair) == "string" then
+			strpair = {v, {0,0}}
+		end
+		str, loc, f = strpair[1], self.locationType(strpair[2]), strpair[3]
+		if f then
+			self:setFont(f)
+		end
+		lg.print(str, x+loc[1],y+loc[2],r+loc[3],sx+loc[4],sy+loc[5])
+	end
+	self:releaseFont()
+end
+function g.debug:setFont(f)
+	local font_to_set
+	if f then
+		if type(f) ~= "number" or f < 1 or f > #self.fonts then
+			_c_warn("Warning: gcore.debug.setFont() called with improper font size of "..tostring(f).." where max is "..tostring(#self.fonts).."! Font will not be changed.")
+			return
+		end
+		font_to_set = self.fonts[f]
+	else
+		self.formerFont = lg.getFont()
+		font_to_set = self.fonts[self.fontsize]
+	end
+	if self.formerFont ~= font_to_set or lg.getFont() ~= font_to_set then lg.setFont(font_to_set) end
+end
+function g.debug:releaseFont()
+	if self.formerfont then lg.setFont(self.formerfont) end
+	self.formerfont = nil
+end
+function g.debug:loadFonts(startsize)
+	local startsize, sizes, increment = startsize or 10,10,2
+	local fonts = {}
+	for i=1, sizes do
+		fonts[#fonts+1] = lg.newFont(startsize+i*increment)
+	end
+	self.fonts = fonts
+	self.fontsize = 1
+	self.fontmax = sizes
+	self.changeFontSize = function(self, inc)
+		if type(inc) == "number" then
+			if inc > 1 and inc < self.fontmax then
+				self.fontsize = inc
+			else
+				_c_warn("gcore.debug.changeFontSize called with improper fontsize "..tostring(inc).." where min is 1 and max is "..tostring(self.debug.fontmax).."!")
+			end
+
+		elseif inc then
+			self.fontsize = self.fontsize + 1
+			if self.fontsize > self.fontmax then self.fontsize = self.fontmax end
+		else	--
+			self.fontsize = self.fontsize - 1
+			if self.fontsize < 1 then self.fontsize = 1 end
+		end
+	end
+
 end
 function g.debug.guitableprint(t, name, x, y, font, color, tab, offset,depth)
 	setparams = false
@@ -188,7 +274,7 @@ function g.debug.tablePrint_asString(t, name, tbls)
 	for i = 1, #t do
 		if type(t[i]) == "table" and not tbls[tostring(t[i])] then
 			tbls[tostring(t[i])] = true
-			s = s .."["..tostring(i).."]={"..tablePrint_asString(t[i],nil,tbls).."}"
+			s = s .."["..tostring(i).."]={"..g.debug.tablePrint_asString(t[i],nil,tbls).."}"
 		elseif type(t[i]) == "table" then
 			s = s.." "..tostring(t[i])
 		else
@@ -200,7 +286,7 @@ function g.debug.tablePrint_asString(t, name, tbls)
 			if type(t[k]) ~= "function" and k[1]~= "_" and k ~="super" then
 				if type(t[k]) == "table" and not tbls[tostring(t[k])] then
 					tbls[tostring(t[k])] = true
-					s = s .."["..tostring(k).."]={"..tablePrint_asString(t[k],nil,tbls).."}"
+					s = s .."["..tostring(k).."]={"..g.debug.tablePrint_asString(t[k],nil,tbls).."}"
 				elseif type(t[k]) == "table" then
 					s = s.." "..tostring(t[k])
 				else
@@ -208,6 +294,45 @@ function g.debug.tablePrint_asString(t, name, tbls)
 				end
 			end
 		end
+	end
+	return s
+end
+function g.debug.tablePrint_stringWithBreaks(t,name,tbls,xo)
+	local f = lg.getFont()
+	local w = f:getWidth("W")
+	local s = name.."\r\n" or "Table\r\n"
+	xo= xo or 0
+	local tab = ""
+	for i=1,xo do tab = tab.." " end
+	tbls = tbls or {}
+	for i=1, #t do
+		s = s .. tab
+		if type(t[i]) == "table" and not tbls[tostring(t[i])] then
+			tbls[tostring(t[i])] = true
+			s = s .."["..tostring(i).."]={"..g.debug.tablePrint_stringWithBreaks(t[i],nil,tbls,xo+w).."}"
+		elseif type(t[i]) == "table" then
+			s = s.." "..tostring(t[i])
+		else
+			s = s .."["..tostring(i).."]="..tostring(t[i])
+		end
+		s = s.."\r\n"
+	end
+	for k,v in pairs(t) do
+		if type(k)=="string" then
+			if type(t[k]) ~="function" and k[1] ~= "_" and k ~="super" then
+				s = s .. tab
+				if type(t[k]) == "table" and not tbls[tostring(t[k])] then
+					tbls[tostring(t[k])] = true
+					s = s .."["..tostring(k).."]={"..g.debug.tablePrint_asString(t[k],nil,tbls,xo+w).."}"
+				elseif type(t[k])=="table" then
+					s = s.." "..tostring(t[k])
+				else
+					s=s.."["..tostring(k).."]="..tostring(t[k])
+				end
+				s = s.."\r\n"
+			end
+		end
+		
 	end
 	return s
 end
@@ -1180,29 +1305,43 @@ local inputTable = {
 
 _c_todo{"01/29/2025","Classes.Interface.Controller","Object.0"}
 function g:load()
-		--I think this is fine
-	self._input = Classes.Input:new(inputTable)
-	_c_debugN(self._input, "gcore._input")
-	_c_message("printing type of input object: ",_c_color("yellow") )
-	type_print(self._input, true)
-	error()
-	self._input:createParentRefs(self)
+	if _G._CANDEBUG then
+		_c_warn("_CANDEBUG set to ON. Game may perform slower!")
+		self.debug:loadFonts(26)
+		self.debug:createCanvas()
+		self.debug.toggle()			--for now the library is debugging.
+		self._input = Classes.Input:new(inputTable)
+		self._input:createParentRefs(self)
+		_c_debug(self._input)
+		_c_debug(_G._Debugging,"Debugging")
+		_c_debugL(self._input.queues)
+		
+	end
 	--Prototypes.Systems.ObjectSystem:attach(self)	-- don't use this anymore
+	
 end
 
 function g:update(dt)
-	self._input:clear()
-	self._input:update(dt)
 	if self._Debugging ~= _G._Debugging then
 		self._Debugging = _G._Debugging
 
+	end
+	if self._Debugging then
+		self._input:clear()
+		self._input:update(dt)
+		self.debug.container.strings.inputTable = g.debug:strPair(g.debug.tablePrint_stringWithBreaks(self._input.queues,"inputs"))
 	end
 	--clickable debug elements from debugcandy
 end
 
 function g:draw()
 	--draw debug info if in debug mode.
-
+	if self._Debugging then
+		self.debug:push()
+		self.debug:drawContainer()	--can add offsets later.
+		self.debug:pop()
+		lg.draw(self.debug.canvas)
+	end
 end
 
 

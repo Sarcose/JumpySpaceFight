@@ -450,7 +450,9 @@ local function checkExclusion(key, exclude)
     return false
 end
 local function dname(_,name)
-	if type(_)=="table" then _._tableName = name end
+	if type(_)=="table" then _._tableName = name
+	else _ = {value=_,_tableName=name}
+	end
 	return _
 end
 local function getTab(t)
@@ -651,7 +653,9 @@ function ccandy.debugN(_,name,level,parseStart)
 end
 function ccandy.debug(_,level,parseStart)			--#DEBUG
 	if ccandy.controls.Debug_Level < 2 or not ccandy.switches.debug then return end
-	local p = getCallLine("DEBUG",level,parseStart)
+	local name = "DEBUG"
+	if type(level)=="string" then name = level; level = ccandy.controls.Trace_Level end
+	local p = getCallLine(name,level,parseStart)
 	if type(_) ~= "table" then 
 		if type(_) == "string" then
 			p = p .. _		--if it's a string we don't bother with the inspection, just print it as a message

@@ -23,6 +23,7 @@
 ---@alias CReminderType table|string|function Will call indiced functions in tables
 ---@alias CMessageType table|string Will call indiced functions in tables
 ---@alias CAssertResponseType boolean|function
+---@alias CDebugExtraType integer|boolean|string
 
 ---@alias candycolor
 ---| '"yellow"'
@@ -51,15 +52,15 @@ _c_debugL = function(...) end
 ---@type fun(_: table, name: string, level?: integer, parseStart?: integer)
 ---@param _ table
 ---@param name string
----@param level? integer
----@param parseStart? integer
+---@param level? CDebugExtraType
+---@param parseStart? CDebugExtraType
 --- calls _c_debug() with a name attached. In the future all debugs should be rolled into one.
 _c_debugN = function(_, name, level, parseStart) end
 
 ---@type fun(_: table, level?: integer, parseStart?: integer)
----@param _ table
----@param level? integer
----@param parseStart? integer
+---@param _ any
+---@param level? CDebugExtraType
+---@param parseStart? CDebugExtraType
 --- does not dive into subtables. This should just be rolled into the same function as debugL tbh.
 _c_debug = function(_,level,parseStart) end
 
