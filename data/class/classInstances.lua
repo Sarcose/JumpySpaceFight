@@ -1,7 +1,6 @@
 --[[
 The below are *instantiations* meaning here we define the filenames and then generate them using the relevant target in context.
 ]]
-
 local classes = {
     Input = {},                  --context.Class.Input
     Overlay = {},               --context.Class.Overlay
@@ -80,7 +79,7 @@ local classes = {
 ]]
 
 --	self._input = Classes.Interface.Controller:new(inputTable)
-local function nameSpaceTest(context)
+local function nameSpaceTest(context)   --DONE
     local instances = {}
     --target for categories is in:
         --context.Class
@@ -100,6 +99,47 @@ local function nameSpaceTest(context)
     _c_debugL(instances)
 end
 
+_c_todo{"03/06/2025", "XC.Input","C.GameState","SlickTest","C.Overlay","C.Space","C.Entity.Terrain","C.Entity.Actor","C.Entity.Item","C.Entity.Mechanism","C.Entity.Module","A Test Game"}
+
+
+--REWRITE THIS TODO over in GAMESTATES
+--[[As of 03/06/2025 here is our most relevant TODO:
+--[ ] Get Gamestate written, create test gamestates.
+--[ ] Use test gamestates to test:
+    --[ ] Instantiation; self and then more gamestates, moving from state to state. Use basic functional data displays.
+    --[ ] Input (should already be done pretty much)
+    --[ ] Overlays (a variety of these)
+    --[ ] Entities; ~In this gamestate, start with a very simple physics world, ignoring Spaces. Use the following tests to learn the means of Spaces.
+        --[ ] Terrain    
+        --[ ] Item
+        --[ ] Actor
+            --[ ] Actors that move on their own kinda
+            --[ ] Actors that can interact with terrain, impacted by physics
+            --[ ] Actor that can be controlled by player. Change these around a lot
+        --[ ] Mechanism
+        --[ ] Module ; the components that make up overlays specifically
+    --[ ] Spaces;
+        --[ ] Normal up-down space
+        --[ ] Variegated gravity spaces
+        ------Etc-------
+        
+
+]]
+
+local function secondInit(ctx)
+    local C = ctx.Class
+    --'data.class.framework.gamestate'(context) 
+    C.Input = require 'data.class.interface.inputs'(C.Input) --TODO; add input templates
+    C.GameState = require 'data.class.framework.gamestates'(C.GameState) --TODO; add gamestate templates
+    C.Entity = require 'data.class.entity.entities'(C.Entity)
+    C.Overlay = require 'data.class.interface.overlays'(C.Overlay)--TODO; add overlays
+    C.Space = require 'data.class.space.spaces'(C.Space)
+
+
+
+    return ctx.Class
+end
+
 
 local function firstInit(ctx)
     _c_warn("Class instances instantiating... prototyped namespace ONLY")
@@ -107,5 +147,5 @@ local function firstInit(ctx)
 end
 
 return function(context)
-    return firstInit(context)
+    return secondInit(context)
 end

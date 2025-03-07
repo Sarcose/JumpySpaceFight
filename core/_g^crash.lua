@@ -33,7 +33,6 @@
 --[[-------------------------------------------------------------------------]]
 require 'core.debugcandy_hinting'
 require ('core.debugcandy'):export()
-_c_message("\n      NOTE TO DEV: latest next notes are in classinstances.lua",1)
 
 --require 'core.debugcandytest'     --uncomment this when uploading new debugcandy examples
 require 'core.reminders'
@@ -1312,9 +1311,6 @@ function g:load()
 		self.debug.toggle()			--for now the library is debugging.
 		self._input = Classes.Input:new(inputTable)
 		self._input:createParentRefs(self)
-		_c_debug(self._input)
-		_c_debug(_G._Debugging,"Debugging")
-		_c_debugL(self._input.queues)
 		
 	end
 	--Prototypes.Systems.ObjectSystem:attach(self)	-- don't use this anymore

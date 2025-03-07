@@ -21,6 +21,8 @@ function love.load()
     _G.controller = controls:load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     gcore:load()
+    _c_debug(gamestate)
+    error()
     gamestate:load()
 end
 

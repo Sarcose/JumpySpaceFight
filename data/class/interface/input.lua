@@ -18,7 +18,7 @@ return function(context)
         'mb_left','mb_right','mb_middle','mb_left','mb_forward','mb_backward',
         'bottomface','rightface','leftface','topface','pause','select',
         'lbutton','rbutton','prev','printglobal','debug','shift','rb','alt','lb','reset',
-        'u','i','j','k','l','y','h','ctrl',
+        'u','i','j','k','l','y','h','ctrl','up','down','left','right'
     }
 
     local function buildInput(i)
@@ -84,7 +84,7 @@ return function(context)
                 self:addImpulse(directionPairs[buttons[i]])
                 found = true
             end
-            if found then break end --in a serialized control scheme we can optimize iteration.
+            if found and serialized then break end --in a serialized control scheme we can optimize iteration.
         end                         --In gameplay we will not allow for all the mouse buttons
         if self.wheels then
             if controller.wheel.y > 0 then self.queues.mwheel = 1

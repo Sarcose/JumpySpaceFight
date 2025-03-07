@@ -71,10 +71,11 @@ return function(context)
 
     --parseTriggers goes in all entity updates
 
-    Entity.Terrain = require 'data.class.entity.terrain'(context)    
-    Entity.Actor = require 'data.class.entity.actor'(context)    
-    Entity.Item = require 'data.class.entity.item'(context)    
-    Entity.Mechanism = require 'data.class.entity.mechanism'(context)    
+    Entity.Terrain = require 'data.class.entity.terrain'(context)
+    Entity.Actor = require 'data.class.entity.actor'(context)
+    Entity.Item = require 'data.class.entity.item'(context)
+    Entity.Mechanism = require 'data.class.entity.mechanism'(context)
+    Entity.Module = require 'data.class.entity.module'(context)
 
 
     function Entity:new(a)

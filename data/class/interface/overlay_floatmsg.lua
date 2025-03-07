@@ -1,7 +1,7 @@
 local defaults = {
     type = "FloatMessage",
     Name = "NoName",    
-    message = ""
+    message = "",
     time = 2,
 }
 local FloatMessage = Object:extend(defaults)
