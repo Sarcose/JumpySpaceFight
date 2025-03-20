@@ -462,8 +462,9 @@ function g.safe.get(table, key, default)
 	return type(table)=="table" and table[key] or default
 end
 function g.safe.release(object)
-	if object then
-		if object.remove then object:remove()
+	if type(object,"table") then
+		if object.unload then object:unload()
+		elseif object.remove then object:remove()
 		elseif object.release then object:release()
 		end
 	end
@@ -545,16 +546,17 @@ end
 --[[types	  #TYPES]]
 --only for extension enums. add any new entries to gcoreTypeList down below under #REGISTERLIST using local t
 ---@alias gcoreType
----| '"Global"'       # Global namespaces only, not related to global primitives
----| '"System"'       # A System from data.systems
----| '"GameState"'    # GameStates which include title screen and such
+---| '"Global"'       # Global namespaces only, not related to global primitives.
+---| '"System"'       # A System from data.systems.
+---| '"GameState"'    # GameStates which include title screen and such.
 ---| '"Overlay"'      # All UI systems are this type.
 ---| '"Controller"'   # A controller, to be attached to an entity and menu before it works.
 ---| '"Space"'        # Relational containers for entities. Where the game takes place.
 ---| '"Entity"'		  # Basic class for Terrain, Item, Actor
 ---| '"Template"'	  # Basic class for Terrain, Item, Actor
+---| '"MemContainer"' # Containerized instance for instantiating objects. All loaded scopes should start here
 --- #REGISTERLIST
-local gcoreTypeList = {"Global","System","GameState","Overlay","Controller","Space","Entity","Template"}
+local gcoreTypeList = {"Global","System","GameState","Overlay","Controller","Space","Entity","Template","MemContainer"}
 
 --I THINK this is it. I MIGHT also use a new alias for gcoreSubType -- the purpose being,
 								--the types above are prototypes, and i don't want the subtypes to be in the same alias.
@@ -584,7 +586,7 @@ function g.container.assignType(cls,t,name)
 	assert(g.container.__registry[t], "\r\n|gcore message| assignType called to assign invalid type of "..tostring(t).." which is not in gcore.container.__registry. type string passed MUST be a gcoreType extension!")
 	local _t = {}
 	_t.__primitive = "table"
-	_t.__name = name or cls.name or "Unnamed"
+	_t.__name = name or cls.name or "Unnamed".."_"..tostring(t)
 	_t.__type = t
 	_t.__address = string.format("%p",cls)
 	_t.__assigned = "assigned at "..tostring(g.debug.extractCallerInfo()) 
@@ -931,7 +933,10 @@ function g.color.rgbHSLmod(r,g,b,nh,ns,nl)
 	return hslToRgb(h+nh,s+ns,l+nl)
 end
 
+--[[Variables          #VARIABLE]]    -- to deal with variable manipulation. Because so many variables are tables, it includes tables.
+
 g.var = {}
+g.table = g.var --table is merely an alias because i'm forgetful
 
 function g.var.rsign()
 	return math.random(0,1)*2-1
@@ -983,7 +988,18 @@ function g.var.weightedRandom (pool)
        end
     end
  end
- 
+
+function g.var.merge(orig, new, override)
+	-- If override is false, only add unique keys from new to orig
+	-- If override is true, overwrite existing keys in orig with values from new
+	for k, v in pairs(new) do
+		if override or orig[k] == nil then
+			orig[k] = v
+		end
+	end
+end
+
+
 function g.var.shallowcopy(orig)
     _c_debug("shallowcopy called: batteries might have a better alternative",1)
     local orig_type = type(orig)
@@ -1247,6 +1263,18 @@ function _G.type(v,comp)	--#TYPE
 	end
 end
 
+---@type fun(obj: table, t?: string, name?: string)
+---Do not use? I think I need to use gcore.container.assignType instead
+function _G.addType(obj,t,name)
+	if _G._oldType(obj) ~= "table" then
+		_c_warn("addType used on a non-table!")
+	end
+	obj.__type = t or "table"
+	obj.__primitive = "table"
+	obj.__address = tostring(obj)
+	obj.__name = name or "unnamed"
+
+end
 
 --- @param v any
 --- @param expand boolean displays extra __type info, false by default

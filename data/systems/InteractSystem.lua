@@ -42,7 +42,24 @@ local reactions = require 'data.interactions.reactions'
 ]]
 
 
-
+function interactSystem:new()
+    local c = {}
+    for k,v in pairs(self) do
+        if type(k) == "function" then
+            c[k] = v
+        else
+            if type(v) == "table" then
+                c[k] = {}
+                c[k] = tablex.overlay(c[k],v)
+            else
+                c[k] = gcore.var.shallowcopy(v)
+            end
+        end
+    end
+    c:initialize()
+    gcore.container.assignType(self,"System","interactSystem")
+    return c
+end
 
 function interactSystem:initialize(entity)
     local _interactions = entity.interactions

@@ -38,7 +38,8 @@ function c:drawSystems()
     if v.draw then v:draw() end
   end
 end
-function c:addSystems(sys)
+function c:addSystems(sys) --<------- Problem here for some reason
+    --_c_debugL(sys)
   for k,v in pairs(sys) do
     local s = Systems:getSystem(v) --will not parse >1 deep but for this one it's not necessary
     self:addSystem(s,k)
@@ -132,12 +133,11 @@ function context.Class:new(a)
     inst.update = self:getUpdate(update)
     inst.draw = self:getDraw(draw)
     if systems then inst:addSystems(systems) end
-    if apply then inst:parseAndApply(apply) end
+    --if apply then inst:parseAndApply(apply) end
     if self.construct then self:construct(a) end    --the FINAL constructor function, which is dynamic, for the PRIMITIVE type.
     return inst
 end
 function context.Class:extend(a)
-    _c_message("debugging context.Class:extend(a)",4)
     local systems = a.systems
     local apply = a.apply
     a.systems, a.implement = nil,nil
@@ -175,9 +175,9 @@ context.Template = require 'data.template.template'
 context.Templates = require ('data.template.templateInstances')(context)  --[X]
 context.Archetypes = require ('data.class.archetypes.archetypes')(context)
 
-Classes = require ('data.class.classInstances')(context) --instantiate all of GameStates, Overlays, Inputs, Spaces, Entities
+Classes = require 'data.class.classInstances'(context) --instantiate all of GameStates, Overlays, Inputs, Spaces, Entities
     --this will establish the structure of all classes and instantiate all prototypes, preparing to instantiate the rest as needed
 
 
-_c_warn("The next place to put together data will be accessed in templateInstances and classInstances!")
+--_c_warn("The next place to put together data will be accessed in templateInstances and classInstances!")
 

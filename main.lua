@@ -21,25 +21,23 @@ function love.load()
     _G.controller = controls:load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     gcore:load()
-    _c_debug(gamestate)
-    error()
-    gamestate:load()
+    Game:load("Test")
 end
 
 function love.update(dt)
+    Memory:update(dt)
     controller:update(dt)
     gcore:update(dt)
     flux.update(dt)
-    gamestate:update(dt)
+    Game:update(dt)
     controller.wheel.x,controller.wheel.y = 0,0
 end
 
 function love.draw()
     lg.clear()
     push:start()
-    gamestate:draw()
+    Game:draw()
     gcore:draw()
-   -- _c_drawDebug()
     push:finish()
 end
 

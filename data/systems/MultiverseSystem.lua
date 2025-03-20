@@ -9,6 +9,24 @@ local multiverseSystem = {}
 
 
 --initialize is separate from "construct" in that it's done at instantiation
+function multiverseSystem:new()
+    local c = {}
+    for k,v in pairs(self) do
+        if type(k) == "function" then
+            c[k] = v
+        else
+            if type(v) == "table" then
+                c[k] = {}
+                c[k] = tablex.overlay(c[k],v)
+            else
+                c[k] = gcore.var.shallowcopy(v)
+            end
+        end
+    end
+    c:initialize()
+    gcore.container.assignType(self,"System","multiverseSystem")
+    return c
+end
 function multiverseSystem:initialize()   
 
 

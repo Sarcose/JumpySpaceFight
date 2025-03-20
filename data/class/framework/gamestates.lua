@@ -1,9 +1,10 @@
 return function(_Gamestate)
+    _c_todo{"03/20/2025","Might it be better to merge Gamestates with Game?"}
     local S = {}
     S.Modes = {
         Splash = "", --"splash"
         Title = "", --"title"
-        Test = "",  --"test"
+        Test = "test",  --"test"
         JumpySpaceFight = "",--"jsf"   --the base JSF game
         --Some example game Modes
         BossRush = "",--"bossrush"

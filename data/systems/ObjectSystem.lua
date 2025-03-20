@@ -8,10 +8,31 @@ local properties = {
     }
 }
 
+function objectSystem:new()
+    local c = {}
+    for k,v in pairs(self) do
+        if type(k) == "function" then
+            c[k] = v
+        else
+            if type(v) == "table" then
+                c[k] = {}
+                c[k] = tablex.overlay(c[k],v)
+            else
+                c[k] = gcore.var.shallowcopy(v)
+            end
+        end
+    end
+    gcore.container.assignType(self,"System","ObjectSystem")
+    c:initialize()
+    return c
+end
+
+
+
 function objectSystem:initialize()
-    self._self.Objects = gcore.var.deepcopy(properties.Objects)
-    self._self.AddObject = function(self,Object,cat,i) self.systems.ObjectSystem:addObject(Object,cat,i) end
-    self._self.RemoveObject = function(self,Object) self.systems.ObjectSystem:removeObject(Object) end
+    self.Objects = gcore.var.deepcopy(properties.Objects)
+    self.AddObject = function(self,Object,cat,i) self.systems.ObjectSystem:addObject(Object,cat,i) end
+    self.RemoveObject = function(self,Object) self.systems.ObjectSystem:removeObject(Object) end
 end
 
 function objectSystem:addObject(Object, cat, i)
@@ -42,7 +63,6 @@ function objectSystem:removeObject(Object)
     return removed
 end
 function objectSystem:reindex(cat)
-    self = self._self
     local o,re
     local ReCat = {}
     local cat_table = self.Objects[cat] 
@@ -65,7 +85,6 @@ function objectSystem:reindex(cat)
     self.Objects[cat] = ReCat
 end
 function objectSystem:update(dt)
-    self = self._self
     if self.Objects.total > 0 then
         local o, object_cat
         for i=1,#self.Objects.categories do

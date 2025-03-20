@@ -9,6 +9,8 @@ local Systems = {
     _tableName = "Systems List",
 }
 
+_c_todo{"03/20/2025","Though the systems paradigm was not meant to be super standardized, we do need to standardize the new() function","objectSystem's prior implementation has been broken by the removal of _self. We must reapproach this going forward. For now top level systems are treated as independent objects/containers."}
+
 function Systems:initialize()
     gcore.container.assignType(self,"Global","Systems")
     local s = self.Systems
@@ -25,6 +27,7 @@ function Systems:getSystem(s)
     local sys = self.Flattened
     if type(sys[s],"System") then
         return sys[s]
+        
     else
         _c_error("GetSystem called with invalid system ref : "..tostring(s))
         _c_debug(s)

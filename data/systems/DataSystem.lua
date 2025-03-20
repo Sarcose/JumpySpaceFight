@@ -1,6 +1,26 @@
 --- used exclusively for handling save data.
 local dataSystem = {}
 
+function dataSystem:new()
+    local c = {}
+    for k,v in pairs(self) do
+        if type(k) == "function" then
+            c[k] = v
+        else
+            if type(v) == "table" then
+                c[k] = {}
+                c[k] = tablex.overlay(c[k],v)
+            else
+                c[k] = gcore.var.shallowcopy(v)
+            end
+        end
+    end
+    gcore.container.assignType(self,"System","dataSystem")
+    c:initialize()
+    return c
+end
+
+
 function dataSystem:initialize()
 
 

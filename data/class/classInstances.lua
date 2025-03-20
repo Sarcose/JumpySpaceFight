@@ -122,22 +122,19 @@ _c_todo{"03/06/2025", "XC.Input","C.GameState","SlickTest","C.Overlay","C.Space"
         --[ ] Normal up-down space
         --[ ] Variegated gravity spaces
         ------Etc-------
-        
-
 ]]
 
+--Classes = require 'data.class.classInstances'(context) --insta
 local function secondInit(ctx)
     local C = ctx.Class
+    local Classes = {}
     --'data.class.framework.gamestate'(context) 
-    C.Input = require 'data.class.interface.inputs'(C.Input) --TODO; add input templates
-    C.GameState = require 'data.class.framework.gamestates'(C.GameState) --TODO; add gamestate templates
-    C.Entity = require 'data.class.entity.entities'(C.Entity)
-    C.Overlay = require 'data.class.interface.overlays'(C.Overlay)--TODO; add overlays
-    C.Space = require 'data.class.space.spaces'(C.Space)
-
-
-
-    return ctx.Class
+    Classes.Input = require 'data.class.interface.inputs'(C.Input) --TODO; add input templates
+    Classes.GameState = require 'data.class.framework.gamestates'(C.GameState) --TODO; add gamestate templates
+    -- Classes.Entity = require 'data.class.entity.entities'(C.Entity)
+    Classes.Overlay = require 'data.class.interface.overlays'(C.Overlay)--TODO; add overlays
+    -- Classes.Space = require 'data.class.space.spaces'(C.Space)
+    return Classes
 end
 
 

@@ -18,10 +18,10 @@ flux = require 'lib.flux'
 
 --[[   Encapsulation    ]]
 Object = require 'lib.classic'
+Memory = require 'core.memory'
 require 'data.container.class'
 
 
-
 --[[       State        ]]
-gamestate = require 'state.engine'
+Game = require 'data.class.framework.game'
 --save_file = require 'state.save.savestruct'
