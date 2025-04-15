@@ -2,7 +2,6 @@ local Systems = {
     Systems = {
         ObjectSystem = 'data.systems.ObjectSystem',
         MultiverseSystem = 'data.systems.MultiverseSystem',
-        DataSystem = 'data.systems.DataSystem',
         InteractSystem = 'data.systems.InteractSystem'
     },
     Flattened = {}, --in case I need a ref table for later.

@@ -12,7 +12,7 @@
 local Defaults = {
     type = "GameState",
     Name = "GameStatePrototype",
-    systems = {ObjectSystem = "ObjectSystem", MultiverseSystem = "MultiverseSystem", DataSystem = "DataSystem" },    ---DataSystem; tbd
+    systems = {ObjectSystem = "ObjectSystem", MultiverseSystem = "MultiverseSystem"},    ---DataSystem; tbd
     apply = {},
     update = "inputs",
     draw = "basic",
@@ -20,7 +20,7 @@ local Defaults = {
     Context = {},   --where everything is probably going to be run from.
 }
 
-local systemOrder = {"DataSystem","MultiverseSystem","ObjectSystem"}
+local systemOrder = {"MultiverseSystem","ObjectSystem"}
 
 return function(context)
     local State = context.Class:extend(Defaults)

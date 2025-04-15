@@ -4,7 +4,6 @@ return function(_Gamestate)
     S.Modes = {
         Splash = "splash", --"splash"
         Title = "title", --"title"
-        Test = "test",  --"test"
         JumpySpaceFight = "jsf",--"jsf"   --the base JSF game
         --Some example game Modes
         BossRush = "bossrush",--"bossrush"
