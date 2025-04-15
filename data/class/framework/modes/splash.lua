@@ -1,3 +1,4 @@
+local __proto = require 'data.class.framework.modes.prototype'
 return function(_Gamestate)
     local def = {name = "Splash_Gamestate", scene = "splash"}
     local t = _Gamestate:construct(def)
@@ -5,14 +6,31 @@ return function(_Gamestate)
     function t:load()
         self.super.load(self)
         --load meta-save; cursor positions, customizations, etc
-        require(self.super.stage.."."..self.scene..".load")(self.Context)
+        __proto.load(self)
         self.loaded = true
         return self
     end    
 
+
+    function t:unload()
+        self.super.unload(self)
+    end
     return t
 
 end
+
+
+--[[
+    As of right now, this document accesses a discrete "load.lua"
+
+    I am growing tired of prototyping but, once again, it seems I should do so.
+    However, I could do things a lil different -- a "prototype file" that every mode passes itself into
+
+    
+    e.g.: require('data.class.framework.modes.prototype'):load(self)
+
+]]
+
 
 
 
