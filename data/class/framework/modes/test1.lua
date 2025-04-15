@@ -1,5 +1,5 @@
-return function(_Gamestate) --unmodified
-    local def = {name = "Test_Gamestate", scene = "test"}
+return function(_Gamestate)
+    local def = {name = "Test_Gamestate"}
     local t = _Gamestate:construct(def)
 
     function t:load()

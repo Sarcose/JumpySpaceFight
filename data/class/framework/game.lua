@@ -8,7 +8,6 @@ local Game = {
 --mode switches can only happen in the main menu, which will be written later
 --for the main menu see Overlays, this will use Classes.Overlay
 function Game:load(mode, reload) --if reload, then the game mode is reloaded
-    _c_debugN(Classes.GameState,"GameState")
     if reload or not Classes.GameState.Modes[mode].loaded then
         self.State = Classes.GameState.Modes[mode]:load()
     else

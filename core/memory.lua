@@ -38,6 +38,61 @@ function Container:add(n,v)
 
     self:checksort()
 end
+--- @param t ?any can be left blank and will report both __keys as well as __indices.
+function Container:report(t)    --TODO: add a function that greps memory USAGE maybe? per item?
+    local keys, indices,reported
+    if not t then --we're reporting defaults
+        keys,indices = true,true
+    elseif t == "keys" then
+        keys = true
+    elseif t == "indices" or t == "index" then
+        indices = true
+    elseif type(t) == "string" then --safecall pass the report command through to a specific key in __keys. Useful for pulling down data through a system.
+        local item = self.__keys[t]
+        if item then
+            if type(item,"table") then
+                if not _safe.call("report",item) then
+                    _c_warn("problem with container:report() in "..self.name.." passthrough to "..t..": report() does not exist on this object!")
+                else
+                    reported = true
+                end
+            else
+                _c_warn("problem with container:report() in "..self.name.." passthrough to "..t..": object is not a table!")
+            end
+        else
+            _c_warn("problem with container:report() in "..self.name.." passthrough to "..t..": object does not exist on this container!")
+        end
+    end
+    if keys or indices then
+        local r = {"Report on Memory Container: "..self.name.."]"}
+        local title = "["
+        if keys then
+            title = title.."Key "
+            local item
+            for i,v in ipairs(self.__keyindices) do
+                item = self.__keys[v]
+                table.insert(r,tostring(v).." : "..type_print(item,false,true))
+            end    
+        end
+        if indices then
+            if #title > 0 then
+                title = title.."& Index "
+            else
+                title = title.."Index "
+            end
+            for i,v in ipairs(self.__indices) do
+                table.insert(r,tostring(v).." : "..type_print(v,false,true))
+            end
+        end
+        r[1] = title..r[1]
+        _c_message({r,newline = true})
+        reported = true
+    end
+
+    if not reported then _c_warn("problem with container:report() in "..self.name.." : Report failed!") end
+
+    return reported
+end
 
 --- @param n any key or index. Value reference gets removed from the Container but does not touch the memory if it exists elsewhere
 function Container:_remove(n)
@@ -54,12 +109,10 @@ function Container:_remove(n)
     end
     self:checksort()
 end
-
 --- determines if Container needs sorting, that's all. check against garbagelimit.
 function Container:checksort()
     if self.__garbage > garbagelimit then self:sort() end
 end
-
 --- rebuilds __indices and __keyindices. __keys do not need rebuilt as they are not iterated.
 function Container:sort()
     local _newinds, _newkeyinds = {},{}
@@ -72,7 +125,6 @@ function Container:sort()
     self.__indices, self.__keyindices = _newinds, _newkeyinds
     self.__garbage = 0
 end
-
 --- releases from memory. Will iterate __keys via __keyindices as well as __indices to check if anything referenced is an object to be destroyed.
 --- Note: this IS destructive for those objects! If that object exists anywhere else in memory it will still call its destroy function, which may cause
 --- Breakages if a reference to it, or part of it, still exists. Please note that objects should never be instantiated in more than one Container at a time, to avoid this.
@@ -93,17 +145,23 @@ function Container:release()
     _G._allobjects.__MemoryContainers[self] = nil
     _G._allobjects.__MemoryContainers.__size = _G._allobjects.__MemoryContainers.__size - 1
 end
-
 function Container:generateName(name)
     name = name or "UnnamedMemoryContainer"
     local mode = Game:getMode(false)
     local time = tostring(love.timer.getTime())
-    return "gamemode_"..mode.."_MemoryContainer:"..name.."_".."instantiated:"..time
+    return "gamemode_"..mode.."_MemoryContainer: "..name.."_".."instantiated:"..time
 end
+--[[
+name becomes:  gamemode_test_MemoryContainer:Splash_Gamestate_TopLevelMemoryContainer__instantiated:1.9408803
+
+we might want to do some parsing of this or make it into its own metadata object
+]]
+
 
 --- Creates a new, empty, Memory Container
 function Container:new(name)
     name = self:generateName(name)
+    print("container: new, name = ",name)
     local c = {}
     for k,v in pairs(self) do
         if type(k) == "function" then
@@ -119,6 +177,7 @@ function Container:new(name)
     end
     gcore.container.assignType(c,"MemContainer",name)
     c.super = self
+    c.name = c.__name
     setmetatable(c,self)
     _G._allobjects.__MemoryContainers[c] = c
     _G._allobjects.__MemoryContainers.__size = _G._allobjects.__MemoryContainers.__size + 1

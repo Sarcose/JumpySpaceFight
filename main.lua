@@ -5,7 +5,6 @@ lm = love.math
 require 'load.globals'
 require 'load.requires'
 love.run = require 'run'
-push:setupScreen(GAME_W, GAME_H, w_width, w_height, {fullscreen = false, resizable = false, canvas = true, pixelperfect = true, stretched = true})
 
 --[[
     The path to starting the first demo of the game is as such:
@@ -15,13 +14,18 @@ A test game state that loads a test reality that loads a test universe that load
 
 ]]
 
-_G.TestFont = love.graphics.newFont(32)
+--push:setupCanvas(canvasList)
+
+--e.g. push:setupCanvas({   { name = "foreground", shader = foregroundShader }, { name = "background" }   })
+
 
 function love.load()
+    _G.TestFont = lg.newFont(32)
     _G.controller = controls:load()
-    love.graphics.setDefaultFilter("nearest", "nearest")
+    push:setupScreen(GAME_W, GAME_H, w_width, w_height, {fullscreen = false, resizable = false, canvas = true, pixelperfect = true, stretched = true})
+    lg.setDefaultFilter("nearest", "nearest")
     gcore:load()
-    Game:load("Test")
+    Game:load("Splash")
 end
 
 function love.update(dt)
@@ -49,3 +53,28 @@ function love.wheelmoved(x,y)
     controller.wheel.x, controller.wheel.y = x,y
 
 end
+
+
+local kbTodo = {
+    "04/08/2025",
+    "KB last edited according to this TODO",
+    "Trace how Game updates State",
+    "Indicate how State can receive data"
+}
+
+local trueTodo = {
+    "04/08/2025",
+    "XTrace how Game updates State",
+    "Figure out why Mode is not creating fully unique gamestates",
+    "Open game into a RUDIMENTARY menu state, for selecting game modes",
+    "Indicate how State can receive Data",
+    "Begin prototyping that data",
+    "Moving back to Opening menu - iterate upon it, begin using a Menu class",
+    "Side Quests:",
+    "[ ] Change controller.wheel.x and controller.wheel.y into their own reset fn",
+}
+
+_c_todo(kbTodo)
+_c_todo(trueTodo)
+
+

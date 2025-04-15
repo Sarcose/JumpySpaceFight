@@ -795,7 +795,7 @@ end
 function ccandy.message(...) --#MESSAGE
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.message then return end
 	local args = {...}
-	local _, level, color, bgcolor, calltag
+	local _, level, color, bgcolor, calltag,newline
 	if type(args[1]) ~= "table" then 
 		_ = {args[1]} 
 	else 
@@ -804,9 +804,11 @@ function ccandy.message(...) --#MESSAGE
 		color = _.color
 		bgcolor = _.bgcolor
 		calltag = _.calltag
+		newline = _.newline
 	end
 	if type(args[2]) == "string" then color = args[2] bgcolor = args[3] level = nil end
 	if type(args[2]) == "number" then level = args[2] color = args[3] bgcolor = args[4] end
+	if type(args[2])=="boolean" or type(args[3])=="boolean" or type(args[4])=="boolean" then newline = true end
 	calltag = calltag or "Message"
 	color = color or "cyan"
 	level = ccandy:_getLevel(level) or 0
@@ -815,14 +817,30 @@ function ccandy.message(...) --#MESSAGE
 	local item
 	for i=1, #_ do
 		item = _[i]
-		if type(item)=="function" then
-			item()
+		if type(item)=="table" then
+			local tab = "     "
+			for i,v in ipairs(item) do
+				if newline and i > 1 then
+					p = p .. "\r\n"..tab
+				end
+				p = p .. tostring(v)
+				if i < #item and not newline then
+					p = p..", " 
+				end
+			end
 		else
-			p = p..tostring(item)
+			if type(item)=="function" then
+				item()
+			else
+				p = p..tostring(item)
+			end
+			if i < #_ then
+				if newline then p = p.."\n"
+				else p = p..", " 
+				end
+			end
 		end
-		if i < #_ then
-			p = p..", "
-		end
+		
     end
 	if bgcolor then color = color.."|"..bgcolor end
 	ccandy._display(color,p)

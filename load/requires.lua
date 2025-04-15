@@ -11,6 +11,7 @@ push = require 'lib.push'
 
 --[[         UI         ]]
 controls = require 'ui.controls'
+colors = require 'ui.colors'
 
 --[[     Physics       ]]
 slick = require 'lib.slick'

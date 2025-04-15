@@ -586,16 +586,32 @@ function g.container.assignType(cls,t,name)
 	assert(g.container.__registry[t], "\r\n|gcore message| assignType called to assign invalid type of "..tostring(t).." which is not in gcore.container.__registry. type string passed MUST be a gcoreType extension!")
 	local _t = {}
 	_t.__primitive = "table"
-	_t.__name = name or cls.name or "Unnamed".."_"..tostring(t)
 	_t.__type = t
 	_t.__address = string.format("%p",cls)
+	_t.__name = name or cls.name or "Unnamed".."_"..tostring(_t.__address)
 	_t.__assigned = "assigned at "..tostring(g.debug.extractCallerInfo()) 
 		--eventually we will want to be parsing the exact moment when a type is assigned, using a debug flag (parsing this will eat up CPU),
 		--in order to track down assignments that are somehow messed up, in the files themselves.
 	cls.__type = _t
 end
+local anonymous_counter = 0
 
-
+---@type fun(cls: table)
+---@param cls table
+---Used for anonymous referencing between backend functions, such as referencing one's own canvas within Push
+function g.container.assignAnonymousType(cls)
+    assert(type(cls,"table"),"\r\n|gcore message| assignType called without table! Only assign types in this way to tables, primitive types don't need this. cls: "..tostring(cls))
+	anonymous_counter = anonymous_counter + 1
+	local _t = {}
+	_t.__primitive = "table"
+	_t.__type = "ANONYMOUS"
+	_t.__address = string.format("%p",cls)
+	_t.__name = "ANON_"..tostring(_t.__address).."_"..tostring(anonymous_counter)
+	_t.__assigned = "assigned at "..tostring(g.debug.extractCallerInfo()) 
+		--eventually we will want to be parsing the exact moment when a type is assigned, using a debug flag (parsing this will eat up CPU),
+		--in order to track down assignments that are somehow messed up, in the files themselves.
+	cls.__type = _t
+end
 g.state = {}
 --[[state           #STATE]]
 local function addMethods(a)
@@ -1277,9 +1293,9 @@ function _G.addType(obj,t,name)
 end
 
 --- @param v any
---- @param expand boolean displays extra __type info, false by default
+--- @param expand? boolean displays extra __type info, false by default
 --- print the old type or the attributes of the __type table
-function _G.type_print(v, expand)
+function _G.type_print(v, expand, printable)
 	local p
 	if _G._oldType(v)=="table" then
 		if v.__type then
@@ -1299,7 +1315,10 @@ function _G.type_print(v, expand)
 	else
 		p = _G._oldType(v)
 	end
-	_c_message(p)
+	if not printable then _c_message(p) else
+		 return "["..p[1].."|"..p[2].."|"..p[3].."|"..p[4].."|"..p[5] .."]"
+
+	end
 end
 
 --[[Replace print() with debugcandy, throw soft warnings w/trace if print() is used directly]]
@@ -1336,7 +1355,7 @@ function g:load()
 		_c_warn("_CANDEBUG set to ON. Game may perform slower!")
 		self.debug:loadFonts(26)
 		self.debug:createCanvas()
-		self.debug.toggle()			--for now the library is debugging.
+		--self.debug.toggle()			--for now the library is debugging.
 		self._input = Classes.Input:new(inputTable)
 		self._input:createParentRefs(self)
 		

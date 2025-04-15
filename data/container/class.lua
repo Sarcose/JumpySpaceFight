@@ -38,10 +38,9 @@ function c:drawSystems()
     if v.draw then v:draw() end
   end
 end
-function c:addSystems(sys) --<------- Problem here for some reason
-    --_c_debugL(sys)
+function c:addSystems(sys)
   for k,v in pairs(sys) do
-    local s = Systems:getSystem(v) --will not parse >1 deep but for this one it's not necessary
+    local s = Systems:getSystem(v)
     self:addSystem(s,k)
   end
 end
@@ -120,9 +119,9 @@ context.Class = Object:extend(c)
 --this implementation of new expects systems and implementations
 --defaults and passed "a" both have a "systems" and "implement" table.
 --we remove this table and attach it after extending and instantiating, to keep the namespace from being overpopulated by refs.
-context.Class._new = context.Class.new
+--context.Class._new = context.Class.new
 context.Class._extend = context.Class.extend
-function context.Class:new(a)
+--[[function context.Class:new(a)
     local systems = a.systems or self.systems
     local apply = a.apply or self.apply
     local update = a.update or "basic"
@@ -136,7 +135,7 @@ function context.Class:new(a)
     --if apply then inst:parseAndApply(apply) end
     if self.construct then self:construct(a) end    --the FINAL constructor function, which is dynamic, for the PRIMITIVE type.
     return inst
-end
+end]]
 function context.Class:extend(a)
     local systems = a.systems
     local apply = a.apply
