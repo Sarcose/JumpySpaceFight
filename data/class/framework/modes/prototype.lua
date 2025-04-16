@@ -10,8 +10,10 @@ function P.loadData(mode,data)
 end
 
 function P.loadStage(mode)
-    local ctx = mode.Context
+    local ctx = mode.Context    --this is current dynamic state
     --based on mode.currentData or something, load stage
+
+    local testSpaces = require('data.class.space.spaces.tests')
 
     local testobjects = require('data.class.framework.modes.stage.test.testObjects')
     for i,v in ipairs(testobjects) do
@@ -22,7 +24,7 @@ end
 
 
 function P.load(mode,data)
-    P.loadData(mode, data) 
+    if data then P.loadData(mode, data) end
     P.loadStage(mode)
 end
 

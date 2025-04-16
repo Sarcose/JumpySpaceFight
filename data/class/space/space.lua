@@ -51,9 +51,3 @@ return function(context)
     --see Class: c._drawMethods.basic, use systems to add new functionality.
     return Space
 end
-
-
-
---[[
-Design journal 1/24 (see Aseprite: JSF space journal)
-]]

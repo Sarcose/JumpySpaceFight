@@ -133,7 +133,7 @@ local function secondInit(ctx)
     Classes.GameState = require 'data.class.framework.gamestates'(C.GameState) --TODO; add gamestate templates
     -- Classes.Entity = require 'data.class.entity.entities'(C.Entity)
     Classes.Overlay = require 'data.class.interface.overlays'(C.Overlay)--TODO; add overlays
-    -- Classes.Space = require 'data.class.space.spaces'(C.Space)
+    Classes.Space = require 'data.class.space.spaces'(C.Space)
     return Classes
 end
 
