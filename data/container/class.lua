@@ -173,10 +173,9 @@ context.Template = require 'data.template.template'
 --Actual DATA below. Individual templates and Individual Classes of various kinds.
 context.Templates = require ('data.template.templateInstances')(context)  --[X]
 context.Archetypes = require ('data.class.archetypes.archetypes')(context)
-
+print('loading Classes inside class.lua')
 Classes = require 'data.class.classInstances'(context) --instantiate all of GameStates, Overlays, Inputs, Spaces, Entities
     --this will establish the structure of all classes and instantiate all prototypes, preparing to instantiate the rest as needed
-
 
 --_c_warn("The next place to put together data will be accessed in templateInstances and classInstances!")
 

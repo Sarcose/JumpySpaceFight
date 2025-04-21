@@ -18,7 +18,6 @@ A test game state that loads a test reality that loads a test universe that load
 
 --e.g. push:setupCanvas({   { name = "foreground", shader = foregroundShader }, { name = "background" }   })
 
-
 function love.load()
     _G.TestFont = lg.newFont(32)
     _G.controller = controls:load()

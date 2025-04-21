@@ -23,7 +23,9 @@ local Defaults = {
 local systemOrder = {"MultiverseSystem","ObjectSystem"}
 
 return function(context)
+    print('gamestate.lua State = context.Class:extend(Defaults)')
     local State = context.Class:extend(Defaults)
+    print('gamestate.lua default = gcore.var.deepcopy(Defaults)')
     local default = gcore.var.deepcopy(Defaults)
     print("initializing def as "..tostring(default))
     default.Name = "GameState_Unnamed"

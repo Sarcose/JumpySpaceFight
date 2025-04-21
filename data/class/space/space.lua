@@ -32,6 +32,7 @@ return function(context)
     local Space = context.Class:extend(defaults)
 
     function Space:new(a,name)
+        a = a or defaults
         local inst = self:extend(a)
         local s = a.systems or self.systems
         local imp = a.implement or self.implement

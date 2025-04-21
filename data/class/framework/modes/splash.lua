@@ -3,6 +3,13 @@ return function(_Gamestate)
     local def = {name = "Splash_Gamestate", scene = "splash"}
     local t = _Gamestate:construct(def)
 
+    print('attempting to create a space test')
+    local spacetest = Classes.Space:new(nil,"TestSpace")
+    print('debugging space')
+    _c_debug(spacetest)
+   print('closing')
+    error()
+
 
     function t:load()   --in game modes, this is load(data)
         --in game modes, this is data = data or defaultdata
