@@ -38,13 +38,14 @@ function c:drawSystems()
     if v.draw then v:draw() end
   end
 end
+
 function c:addSystems(sys)
   for k,v in pairs(sys) do
     local s = Systems:getSystem(v)
-    self:addSystem(s,k)
+    self:addSystem(s,k,sys)
   end
 end
-function c:addSystem(sys,k)
+function c:addSystem(sys,k,debugtable)
     table.insert(self.systems,sys)
     self.systems[k] = sys
     self.systems[k]._self = self
@@ -136,11 +137,28 @@ context.Class._extend = context.Class.extend
     if self.construct then self:construct(a) end    --the FINAL constructor function, which is dynamic, for the PRIMITIVE type.
     return inst
 end]]
-function context.Class:extend(a)
-    local systems = a.systems
-    local apply = a.apply
-    a.systems, a.implement = nil,nil
-    local cls = self:_extend(a)
+
+--_c_stop("Problem here in context.Class:extend(a) when instantiating systems for Spaces, possibly other entities. See SplashTest thought for ongoing debug project.")
+local function splash(msg, debugging)
+    if debugging then _safe.call(SplashTest,"&& "..msg) end
+end
+function context.Class:extend(a, debugging)
+    splash("debugging within Class:extend",debugging)
+    splash("prior to copy, a address = "..tostring(a),debugging)
+    splash("prior to copy, a.systems address = "..tostring(a.systems),debugging)
+    a = gcore.var.deepcopy(a)
+    splash("post copy, a address = "..tostring(a),debugging)
+    splash("post copy, a.systems address = "..tostring(a.systems),debugging)
+
+
+    local systems = {}
+    local apply = {}
+--    a.systems, a.implement = nil,nil
+    local cls = self:_extend(a,{systems=true, apply=true})
+    splash("post _extend, a address = "..tostring(a),debugging)
+    splash("post _extend, a.systems = "..tostring(a.systems),debugging)
+    splash("post _extend, self.systems = "..tostring(self.systems),debugging)
+    splash("post _extend, cls.systems = "..tostring(cls.systems),debugging)
     cls.flags = {}
     if systems then cls:addSystems(systems) end
     if apply then cls:parseAndApply(apply) end

@@ -1,13 +1,40 @@
 local __proto = require 'data.class.framework.modes.prototype'
-return function(_Gamestate)
+return function(C)
+    local _Gamestate = C.GameState
+    _c_message("Aliasing Gamestate with table address: "..tostring(_Gamestate))
     local def = {name = "Splash_Gamestate", scene = "splash"}
     local t = _Gamestate:construct(def)
+    _c_message("Constructing state Splash with table address: "..tostring(t))
+    SplashTest("Attempting to create space!")
+    local spacetest = C.Space:new(nil,"TestSpace")  
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    print("=======================================================")
+    
+    --...do I have to refactor this shit...?
 
-    print('attempting to create a space test')
-    local spacetest = Classes.Space:new(nil,"TestSpace")
-    print('debugging space')
+    SplashTest("Successfully created space. Printing debug output:")
+    _c_debugL(spacetest)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     _c_debug(spacetest)
-   print('closing')
+    
+    
+    SplashTest("Closing")
     error()
 
 

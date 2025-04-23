@@ -1,4 +1,5 @@
-return function(_Input)
+return function(C)
+    local _Input = C.Input
     local I = {}
     I.instances = {}    --use this to build basic control profiles e.g., "Player" "Menu" etc.
                         --just a collection of input tables to be passed. Define here inside function, abstraction be damned

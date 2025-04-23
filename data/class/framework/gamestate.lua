@@ -19,15 +19,12 @@ local Defaults = {
     stage = "data.class.framework.modes.stage",
     Context = {},   --where everything is probably going to be run from.
 }
-
 local systemOrder = {"MultiverseSystem","ObjectSystem"}
 
 return function(context)
-    print('gamestate.lua State = context.Class:extend(Defaults)')
-    local State = context.Class:extend(Defaults)
-    print('gamestate.lua default = gcore.var.deepcopy(Defaults)')
     local default = gcore.var.deepcopy(Defaults)
-    print("initializing def as "..tostring(default))
+    local _, fn = gcore.debug.thought("Starting the default table copy test")
+    local State = context.Class:extend(default)
     default.Name = "GameState_Unnamed"
     function State:construct(a)   
         local d = {

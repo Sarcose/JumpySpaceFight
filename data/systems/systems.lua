@@ -22,11 +22,11 @@ function Systems:initialize()
     end
     return self
 end
+
 function Systems:getSystem(s)
     local sys = self.Flattened
     if type(sys[s],"System") then
         return sys[s]
-        
     else
         _c_error("GetSystem called with invalid system ref : "..tostring(s))
         _c_debug(s)

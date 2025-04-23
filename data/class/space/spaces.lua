@@ -1,4 +1,5 @@
-return function(Space)
+return function(C)
+    local Space = C.Space
     local def = {}
     local test = {
         Space:extend(Space),Space:extend(Space),Space:extend(Space),Space:extend(Space)

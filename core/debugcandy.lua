@@ -866,6 +866,7 @@ end
 
 
 function ccandy.stop(_,level) --print red to console then stop the program
+	_ = _ or "_"
 	if ccandy.controls.Debug_Level < 1 or not ccandy.switches.stop then return end
 	ccandy.error(_,level)
 	if type(_) == "table" then _ = _[1] end

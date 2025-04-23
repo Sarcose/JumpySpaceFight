@@ -28,22 +28,25 @@ function Object:new(a)
 end
 
 
-function Object:extend(a)
+function Object:extend(a,exempt)
   local cls = {}
+  exempt = exempt or {}
   for k, v in pairs(self) do
-    if type(k) == "function" then
-      if a[k] then cls[k] = a[k]
-      else cls[k] = v --all functions defined in class are reference unless otherwise determined.
-      end
-    elseif k:find("__") == 1 then
-      cls[k] = v
-    else
-      if type(v) == "table" then
-        cls[k] = {}
-        cls[k] = tablex.overlay(cls[k],v) --I *think* this might still create references with >1 deep tables. 
-                                          --I also believe it may just be a good practice for classes to *not* have >1 deep tables prototyped
+    if not exempt[k] then
+      if type(k) == "function" then
+        if a[k] then cls[k] = a[k]
+        else cls[k] = v --all functions defined in class are reference unless otherwise determined.
+        end
+      elseif k:find("__") == 1 then
+        cls[k] = v
       else
-        cls[k] = gcore.var.shallowcopy(v)
+        if type(v) == "table" then
+          cls[k] = {}
+          cls[k] = tablex.overlay(cls[k],v) --I *think* this might still create references with >1 deep tables. 
+                                            --I also believe it may just be a good practice for classes to *not* have >1 deep tables prototyped
+        else
+          cls[k] = gcore.var.shallowcopy(v)
+        end
       end
     end
   end
@@ -51,7 +54,7 @@ function Object:extend(a)
   cls.super = self
   cls.type = cls.type or "Object"
   setmetatable(cls, self)
-  if type(a)=="table" then cls = tablex.overlay(cls, a) end
+  if type(a)=="table" then cls = gcore.var.overlay(cls, a, exempt) end
   _G._allobjects[cls] = cls
   return cls
 end

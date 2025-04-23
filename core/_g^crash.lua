@@ -335,6 +335,100 @@ function g.debug.tablePrint_stringWithBreaks(t,name,tbls,xo)
 	end
 	return s
 end
+_c_todo{"04/22/2025","Write a universal argparser using the logic of local parseThoughtArgs","Write thought() so that it parses line number like debugcandy, instead of os.time()"}
+local function parseThoughtArgs(item, argparse)
+	argparse = argparse or {}
+	if type(item,"table") then
+		if #item > 0 then	--if thought{"first","second","third"}
+			for i,v in ipairs(item) do
+				argparse = parseThoughtArgs(v,argparse)
+			end
+		else	--if thought{index=0, message = "message", fn = func}
+			argparse = item
+		end
+	else
+		if type(item,"number") then
+			argparse.index = item
+		elseif type(item,"string") then
+			if argparse.message then 
+				argparse.comment = item
+			else
+				argparse.message = item
+			end
+		elseif type(item,"function") then
+			argparse.fn = item
+		elseif type(item,"boolean") then
+			argparse.history = item
+		end
+	end
+	return argparse
+end
+local index_colors = {	--cyclical coloration... more than five thoughts at once is excessive
+		"\x1b[37m\x1b[44m", --White on Blue
+		"\x1b[35m\x1b[42m", --Magenta on Green
+		"\x1b[35m\x1b[43m", --Magenta on Yellow
+		"\x1b[37m\x1b[41m", --White on Red
+		"\x1b[37m\x1b[45m", --White on Magenta		
+	}
+local function newThought(fn,color,index,comment)
+	return {
+		prepend = index_colors[color],
+		index = index,
+		comment = comment or "no comment",
+		fn = fn,
+		history = {},
+		display = function(self,message)
+			local str = self.prepend..message
+			local thoughtdisplay = tostring(#self.history+1).." at "..tostring(os.time())..": "..message
+			table.insert(self.history,thoughtdisplay)
+			self.fn(str)
+		end,
+		showHistory = function(self)
+			local str = ""..self.prepend.."Displaying history of Thought: "..tostring(self.index).." Comment: "..tostring(self.comment)
+			for i,v in ipairs(self.history) do
+				str = str.."\r\n"..v
+			end
+			self.fn(str)
+		end,
+	}
+end
+
+local thoughts = {}
+
+---@type fun(...: any)
+---@param ... any Can be passed with thought{indices} or thought{int index, str message, function fn} or thought(index, message, fn) or any combination thereof
+--- Creates a "thought" for debugging with -- a visually connected string of console prints for tracking a single issue through multiple iterations
+--- If index is passed, calls that same thought, instead
+--- returns the thought index. Also returns a function wrapper that can be called with fn(message) by itself to continually add to said thought.
+--- at this time functions other than _c_message are technically not supported by the code, but it's left open for future improvements.
+function g.debug.thought(...)
+	--BUG: return callback doesn't work
+	local args = {...}
+	local parsed = parseThoughtArgs(args)
+	local index, message, fn, comment, history = parsed.index, parsed.message, parsed.fn, parsed.comment,parsed.history
+	index = index or #thoughts + 1
+	message = message or "NO MESSAGE THOUGHT"
+	
+	local callback
+	if not thoughts[index] then 
+		fn = fn or _c_message	--fn is only used if thought is new. The point is distinction
+		thoughts[index] = newThought(fn, g.var.getWrapped(index_colors, index),index,comment)
+		callback = function(msg,history)
+			local history = history or false
+			if type(msg) == "boolean" then history = msg msg = nil end
+			g.debug.thought{index=index, message=msg,history=history}
+		end
+	end
+
+	local thought = thoughts[index]
+	if history then
+		thought:showHistory()
+	else
+		thought:display(message)
+	end
+	return index, callback
+end
+
 function g.debug.printHeader(text,line,color,bg)
 	print(line)
 	color = color or "yellow"
@@ -1015,6 +1109,17 @@ function g.var.merge(orig, new, override)
 	end
 end
 
+function g.var.overlay(o, new, exempt)
+	if type(o) ~= "table" or type(new) ~= "table" then return {} end
+	o = tablex.overlay(o,new)
+	if exempt and type(exempt) == "table" then
+		for k,v in pairs(exempt) do
+			o[k] = nil
+		end
+	end
+	return o
+end
+
 
 function g.var.shallowcopy(orig)
     _c_debug("shallowcopy called: batteries might have a better alternative",1)
@@ -1316,7 +1421,11 @@ function _G.type_print(v, expand, printable)
 		p = _G._oldType(v)
 	end
 	if not printable then _c_message(p) else
-		 return "["..p[1].."|"..p[2].."|"..p[3].."|"..p[4].."|"..p[5] .."]"
+		if _G._oldType(p) == "table" then
+		 	return "["..tostring(p[1]).."|"..tostring(p[2]).."|"..tostring(p[3]).."|"..tostring(p[4]).."|"..tostring(p[5]) .."]"
+		else
+			return p
+		end
 
 	end
 end

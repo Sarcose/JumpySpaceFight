@@ -1,4 +1,5 @@
-return function(_Gamestate)
+return function(C)
+    local _Gamestate = C.GameState
     local def = {name = "Classic_Gamestate", scene = "classic"}
     local t = _Gamestate:construct(def)
 

@@ -1,4 +1,5 @@
-return function(_Gamestate)
+return function(C)
+    local _Gamestate = C.GameState
     local def = {name = "Randomizer_Gamestate", scene = "rando"}
     local t = _Gamestate:construct(def)
 
